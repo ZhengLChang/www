@@ -1,0 +1,108 @@
+<script type="text/javascript">
+
+$(document).ready(function(){
+	phoneRingHtml.form1.model = Page.model;
+	TempUtil.render('form1Temp', 'form1', phoneRingHtml.form1);
+	
+	var origialJSON,
+		origialStr,
+		$form = $('#form1'),
+		$alertInfoList = $('#alertInfoList');
+	
+	function createAlertInfoListOption(data)
+	{
+		var len = data.alertInfoList.length,
+			i, result = [];
+			
+		_.each(data.alertInfoList, function(item, i){ 
+			if(!item[0])
+			{
+				result.push(String.format('<tr><td class="list2td1"></td><td class="list2td3">{0}</td><td><input type="text" id="{1}" name="{2}" class="normal" maxlength="63"></td></tr>', "Ring" + (i + 1) + ".wav", "alter_info_" + i, "alter_info_" + i));
+			}
+			else
+			{
+				result.push(String.format('<tr><td class="list2td1"></td><td class="list2td3">{0}</td><td><input type="text" id="{1}" name="{2}" class="normal" maxlength="63"></td></tr>', item[0], "alter_info_" + i, "alter_info_" + i));
+			}
+		});
+		return result.join('');
+	}
+
+	function renderData(data){
+		Page.setFormFieldValue("alertInfoList", data.alertInfoList);
+
+
+		$("#forReplace").html(createAlertInfoListOption(data));
+		_.each(data.alertInfoList, function(item, i){ 
+			Page.setFormFieldValue("alter_info_" +  i, item[1]);
+		});
+	}
+	
+	function initPage(){
+		$('#save').linkbutton();  
+		$('#reset').linkbutton(); 
+	}
+	
+	Page.postJSON({
+		url: MenuItem.pRing.get,
+		success: function(data){
+			origialJSON = data;
+			renderData(data);
+			initPage();
+			
+			//TableUtil.setStripeTable3();
+			Page.$iframe.show();
+			origialStr = $form.formSerialize();
+		}
+	});
+	
+	
+	 $('#save').click(function(){
+		var json = JSON.parmsToJSON($form);
+		if(origialStr == $form.formSerialize()){
+			AlertUtil.saveNoChange();
+			
+			return false;
+		}
+		
+		Page.postJSON({
+			url: MenuItem.pRing.set,
+			data: JSON.serializeToParms(json),
+			success: function(data){
+				AlertUtil.saveSuccess();
+				origialJSON = json;
+				origialStr = $form.formSerialize();
+				
+			}
+		});
+	});
+	
+	$('#reset').click(function(){
+		if(origialJSON){
+			renderData(origialJSON);
+		}
+	});
+});
+</script>
+<div class="detail_box">
+	<form id="form1">
+	<script type="text/template" id="form1Temp">
+	<table class="list2">
+		<tbody>
+			<tr class="head2">
+				<td colspan="3"><%- alterInfoTitle %></td>
+			</tr>
+			<tr id="forReplace">
+			</tr>
+		</tbody>
+		
+	</table>
+	
+	<div class="page-button">
+		<a id="save" href="javascript:;"><%- butConfirm %></a> 
+		&nbsp;&nbsp;&nbsp;&nbsp;
+		&nbsp;&nbsp;&nbsp;&nbsp;	
+		<a id="reset" href="javascript:;"><%- butCancel %></a>  
+	</div>
+	</script>
+	</form>
+</div>

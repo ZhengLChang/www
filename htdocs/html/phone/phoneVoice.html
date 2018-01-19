@@ -1,0 +1,196 @@
+<script type="text/javascript">
+$(document).ready(function(){
+	TempUtil.render('form1Temp', 'form1', phoneVoiceHtml.form1);
+	var origialJSON,
+		origialStr,
+		$form = $('#form1');
+	
+	function renderData(data){
+		Page.setFormFieldValue('echoCanceller', data.echoCanceller);
+		Page.setFormFieldValue('vad', data.vad);
+		Page.setFormFieldValue('cng', data.cng);
+		
+		Page.setFormFieldValue('type', data.type);
+		Page.setFormFieldValue('minDelay', data.minDelay);
+		Page.setFormFieldValue('maxDelay', data.maxDelay);
+		Page.setFormFieldValue('normalDelay', data.normalDelay);
+	}
+	
+	function initPage(){
+		$('#minDelay').numberbox({
+			min: 0,
+			max: 997
+		});
+		$('#maxDelay').numberbox({
+			min: 2,
+			max: 999
+		});
+		$('#normalDelay').numberbox({
+			min: 1,
+			max: 998
+		});
+		
+		$('#save').linkbutton();  
+		$('#reset').linkbutton(); 
+	}
+	
+	Page.postJSON({
+		url: MenuItem.pVoice.get,
+		success: function(data){
+			origialJSON = data;
+			
+			renderData(data);
+			initPage();
+			
+			Page.$iframe.show();
+			origialStr = $form.formSerialize();
+			Page.initTips();
+		}
+	});
+	
+	$('#save').click(function(){
+		if(ValidHelper.invalid($form)){
+			AlertUtil.invalidVal();
+			return false;
+		}
+		
+		if(origialStr == $form.formSerialize()){
+			AlertUtil.saveNoChange();
+			return false;
+		}
+
+		var json = JSON.parmsToJSON($form);
+		
+		var min = parseInt(json.minDelay, 10),
+			max = parseInt(json.maxDelay, 10),
+			normal = parseInt(json.normalDelay, 10);
+		
+		if(!(min < max)){
+			AlertUtil.alertMsg(alertMsg.voiceError1);
+			return false;
+		}
+		
+		if(!((min < normal) && (normal < max))){
+			AlertUtil.alertMsg(alertMsg.voiceError2);
+			return false;
+		}
+		
+		Page.postJSON({
+			url: MenuItem.pVoice.set,
+			data: JSON.serializeToParms(json),
+			success: function(data){
+				AlertUtil.saveSuccess();
+				origialJSON = json;
+				origialStr = $form.formSerialize();
+			}
+		});
+	});
+	
+	var $inputNums = null;
+	$('#reset').click(function(){
+		if(origialJSON){
+			renderData(origialJSON);
+			$inputNums = ValidHelper.numHelper($inputNums);
+		}
+	});
+});
+</script>
+<div class="detail_box">
+	<form id="form1">
+	<script type="text/template" id="form1Temp">
+	<table class="list2">
+		<tbody>				
+			<tr class="head2">
+				<td colspan="3">
+					<%- echoCancellation %>
+					<span class="my-tooltips" title="<%- tips.echoCancellation %>">&nbsp;</span>
+				</td>
+			</tr>
+			<tr>
+				<td class="list2td1"></td>
+				<td class="list2td3"><%- echoCanceller %></td>
+				<td>
+					<select id="echoCanceller" name="echoCanceller" class="normal">
+						<option value="0"><%- echoCancellerOpt0 %></option>
+						<option value="1" selected="selected"><%- echoCancellerOpt1 %></option>
+						<option value="2"><%- echoCancellerOpt2 %></option>
+					</select>
+					<span class="my-tooltips" title="<%- tips.echoCanceller %>">&nbsp;</span>
+				</td>
+			</tr>
+			<tr>
+				<td class="list2td1"></td>
+				<td class="list2td3"><%- vad %></td>
+				<td>
+					<select id="vad" name="vad" class="normal">
+						<option value="0"><%- disable %></option>
+						<option value="1"><%- enable %></option>
+					</select>
+					<span class="my-tooltips" title="<%- tips.vad %>">&nbsp;</span>
+				</td>
+			</tr>
+			<tr>
+				<td class="list2td1"></td>
+				<td class="list2td3"><%- cng %></td>
+				<td>
+					<select id="cng" name="cng" class="normal">
+						<option value="0"><%- disable %></option>
+						<option value="1" selected="selected"><%- enable %></option>
+					</select>
+					<span class="my-tooltips" title="<%- tips.cng %>">&nbsp;</span>
+				</td>
+			</tr>
+			
+			<tr class="head2">
+				<td colspan="3">
+					<%- jitterBuffer %>
+					<span class="my-tooltips" title="<%- tips.jitterBuffer %>">&nbsp;</span>
+				</td>				
+			</tr>
+			<tr>
+				<td class="list2td1"></td>
+				<td class="list2td3"><%- type %></td>
+				<td>
+					<select id="type" name="type" class="normal">
+						<option value="0"><%- typeOpt0 %></option>
+						<option value="1"><%- typeOpt1 %></option>
+					</select>
+				</td>
+			</tr>
+			<tr>
+				<td class="list2td1"></td>
+				<td class="list2td3"><%- minDelay %></td>
+				<td>
+					<input type="text" class="normal" id="minDelay" name="minDelay"/>
+					&nbsp;<span>(0~997)</span>
+				</td>
+			</tr>
+			<tr>
+				<td class="list2td1"></td>
+				<td class="list2td3"><%- maxDelay %></td>
+				<td>
+					<input type="text" class="normal" id="maxDelay" name="maxDelay"/>
+					&nbsp;<span>(2~999)</span>
+				</td>
+			</tr>
+			<tr>
+				<td class="list2td1"></td>
+				<td class="list2td3"><%- normalDelay %></td>
+				<td>
+					<input type="text" class="normal" id="normalDelay" name="normalDelay"/>
+					&nbsp;<span>(1~998)</span>
+				</td>
+			</tr>
+								
+		</tbody>
+		
+	</table>
+	<div class="page-button">
+		<a id="save" href="javascript:;"><%- butConfirm %></a> 
+		&nbsp;&nbsp;&nbsp;&nbsp;
+		&nbsp;&nbsp;&nbsp;&nbsp;	
+		<a id="reset" href="javascript:;"><%- butCancel %></a>  
+	</div>
+	</script>
+	</form>
+</div>

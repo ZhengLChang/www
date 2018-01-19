@@ -1,0 +1,489 @@
+<script type="text/javascript">
+$(document).ready(function(){
+	accountBasicHtml.form1.model = Page.model;
+	TempUtil.render('form1Temp', 'form1', accountBasicHtml.form1);
+
+	var origialJSON,
+		origialStr,
+		$form = $('#form1');
+
+	function createRingListOption(data)
+	{
+		var ringList = data.ringTonesList || [],
+			len = ringList.length,
+			i, result = [];
+
+		result.push(String.format('<option value="0" selected>{0}</option>', accountBasicHtml.form1.ringTonesOpt0));
+		for(i = 0; i < len; i++)
+		{
+			if(i + 1== data.ringTones)
+			{
+				result.push(String.format('<option value="{0}" selected>{1}</option>', i + 1, ringList[i]));
+			}
+			else
+			{
+				result.push(String.format('<option value="{0}">{1}</option>', i + 1, ringList[i]));
+			}
+		}
+		return result.join('');
+	}
+
+	function renderData(data){
+		var showText = accountBasicHtml.showText,
+			registerStatus = '';
+		if(data.registerStatus == 2){
+			registerStatus = showText.registered;
+		} else {
+			registerStatus = showText.unRegistered;
+		}
+		Page.setFormFieldValue('accountNumber', Page.currentAccount);
+
+		Page.setSpanContent('registerStatus', registerStatus);
+		Page.setFormFieldValue('accountActive', data.accountActive);
+
+		Page.setFormFieldValue('labelName', data.labelName);
+		Page.setFormFieldValue('displayName', data.displayName);
+		Page.setFormFieldValue('registerName', data.registerName);
+		Page.setFormFieldValue('userName', data.userName);
+		Page.setFormFieldValue('password', data.password);
+
+		Page.setFormFieldValue('sipServer', data.sipServer);
+		Page.setFormFieldValue('sipServerPort', data.sipServerPort);
+		Page.setFormFieldValue('BackupSIPServerHost', data.BackupSIPServerHost);
+		Page.setFormFieldValue('BackupSIPServerPort', data.BackupSIPServerPort);
+
+		Page.setFormFieldValue('enableOutboundProxyServer', data.enableOutboundProxyServer);
+		Page.setFormFieldValue('outboundProxyServer', data.outboundProxyServer);
+		Page.setFormFieldValue('outboundProxyServerPort', data.outboundProxyServerPort);
+
+		Page.setFormFieldValue('transport', data.transport);
+		Page.setFormFieldValue('verifyServer', data.verifyServer);
+		Page.setFormFieldValue('TLSVersion', data.TLSVersion);
+		Page.setFormFieldValue('natTraversal', data.natTraversal);
+		Page.setFormFieldValue('stunServer', data.stunServer);
+		Page.setFormFieldValue('stunServerPort', data.stunServerPort);
+
+		Page.setFormFieldValue('voiceMail', data.voiceMail);
+		Page.setFormFieldValue('anonymousCall', data.anonymousCall);
+		Page.setFormFieldValue('onCode', data.onCode);
+		Page.setFormFieldValue('offCode', data.offCode);
+		Page.setFormFieldValue('anonymousCallRejection', data.anonymousCallRejection);
+		Page.setFormFieldValue('onCodeRejection', data.onCodeRejection);
+		Page.setFormFieldValue('offCodeRejection', data.offCodeRejection);
+		Page.setFormFieldValue('make_call_without_register', data.make_call_without_register);
+		$('#ringTones').html(createRingListOption(data));
+		Page.setFormFieldValue('ringTones', data.ringTones);
+	}
+
+	function initPage(){
+        $('#sipServerPort').numberbox({
+			min: 0,
+			max: 65535
+		});
+
+		$('#outboundProxyServerPort').numberbox(commonRules.port);
+		$('#stunServerPort').numberbox(commonRules.port);
+		var codeValid = {
+			validType: 'codeValid'
+		};
+		$('#onCode').validatebox(codeValid);
+		$('#offCode').validatebox(codeValid);
+
+		$('#onCodeRejection').validatebox(codeValid);
+		$('#offCodeRejection').validatebox(codeValid);
+		if(Page.username === UserName.user)	
+		{
+			$('#labelName').myEnable(false);
+			$('#displayName').myEnable(false);
+			$('#registerName').myEnable(false);
+			$('#userName').myEnable(false);
+			$('#password').myEnable(false);
+			$('#sipServer').myEnable(false);
+			$('#sipServerPort').myEnable(false);
+			$('#BackupSIPServerHost').myEnable(false);
+			$('#BackupSIPServerPort').myEnable(false);
+			$('#enableOutboundProxyServer').myEnable(false);
+			$('#outboundProxyServer').myEnable(false);
+			$('#outboundProxyServerPort').myEnable(false);
+			$('#transport').myEnable(false);
+			$('#verifyServer').myEnable(false);
+			$('#TLSVersion').myEnable(false);
+			$('#natTraversal').myEnable(false);
+			$('#stunServer').myEnable(false);
+			$('#stunServerPort').myEnable(false);
+			$('#voiceMail').myEnable(false);
+			$('#anonymousCall').myEnable(false);
+			$('#onCode').myEnable(false);
+			$('#offCode').myEnable(false);
+			$('#anonymousCallRejection').myEnable(false);
+			$('#onCodeRejection').myEnable(false);
+			$('#offCodeRejection').myEnable(false);
+			$('#ringTones').myEnable(false);
+			$('#make_call_without_register').myEnable(false);
+		}
+
+		$('#save').linkbutton();  
+		$('#reset').linkbutton(); 
+	}
+
+	Page.postJSON({
+		url: MenuItem.aBasic.get,
+		data: "accountNum=" + Page.currentAccount,
+		success: function(data){
+			origialJSON = data;
+			renderData(data);
+			initPage();
+			Page.$iframe.show();
+			origialStr = $form.formSerialize();
+			Page.initTips();
+		}
+	}); 
+
+	$('#save').click(function(){
+		if(origialStr == $form.formSerialize()){
+			AlertUtil.saveNoChange();
+			$('#sipServerPort').validatebox('isValid');
+			return ;
+		}
+		var json = JSON.parmsToJSON($form);
+
+		var valid, validGroups = [];
+
+		validGroups.push('sipServerPort');
+
+		validGroups.push('onCode');
+		validGroups.push('offCode');
+
+		validGroups.push('onCodeRejection');
+		validGroups.push('offCodeRejection');
+
+		valid = ValidHelper.groupsValid(validGroups);
+
+		if(json.accountActive === '1'){
+			if(!valid){
+				AlertUtil.invalidVal();
+				return false;
+			}
+		}
+
+		if(!ValidHelper.codeValid(json, 'onCode', 'offCode')){
+			return false;
+		}
+		if(!ValidHelper.codeValid(json, 'onCodeRejection', 'offCodeRejection')){
+			return false;
+		}
+
+
+		Page.postJSON({
+			url: MenuItem.aBasic.set,
+			data: JSON.serializeToParms(json),
+			success: function(data){
+				AlertUtil.saveSuccess();
+				origialJSON = json;
+				origialStr = $form.formSerialize();
+			}
+		});
+	});
+
+	var $inputNums = null;
+	$('#reset').click(function(){
+		if(origialJSON){
+			renderData(origialJSON);
+
+			$inputNums = ValidHelper.numHelper($inputNums);
+		}
+	});
+
+	$('#accountNumber').change(function(){
+		var accountNum = this.value;
+		Page.currentAccount = accountNum;
+		Page.postJSON({
+			url: MenuItem.aBasic.get,
+			data: "accountNum="+accountNum,
+			success: function(data){
+				origialJSON = data;
+				renderData(data);
+
+				$inputNums = ValidHelper.numHelper($inputNums);
+				origialStr = $form.formSerialize();
+			}
+		}); 
+	});
+});
+</script>
+<div class="detail_box">
+	<form id="form1">
+	<script type="text/template" id="form1Temp">
+	<table class="list2">
+		<tbody>
+			<tr class="head2">
+				<td colspan="2"><%- accountNumber %></td>
+				<td style="text-indent: 0;">
+					<select id="accountNumber" name="accountNumber" class="normal">
+						<% if(Page.accountNum >= 1) { %>
+							<option value="1"><%- accountNumberOpt1 %></option>
+						<% } %>
+						<% if(Page.accountNum >= 2) { %>
+							<option value="2"><%- accountNumberOpt2 %></option>
+						<% } %>
+						<% if(Page.accountNum >= 3) { %>
+							<option value="3"><%- accountNumberOpt3 %></option>
+						<% } %>
+						<% if(Page.accountNum >= 4) { %>
+							<option value="4"><%- accountNumberOpt4 %></option>
+						<% } %>
+						<% if(Page.accountNum >= 5) { %>
+							<option	value="5"><%- accountNumberOpt5 %></option>
+						<% } %>
+						<% if(Page.accountNum >= 6) { %>
+							<option value="6"><%- accountNumberOpt6 %></option>
+						<% } %>
+					</select>
+				</td>
+			</tr>
+			<tr>
+				<td class="list2td1"></td>
+				<td class="list2td3"><%- registerStatus %></td>
+				<td><span id="registerStatus"></span></td>
+			</tr>
+			<tr>
+				<td class="list2td1"></td>
+				<td class="list2td3"><%- accountActive %></td>
+				<td>
+					<select id="accountActive" name="accountActive" class="normal">
+						<option value="0"><%- disable %></option>
+						<option value="1"><%- enable %></option>
+					</select>
+				</td>
+			</tr>
+			<tr>
+				<td class="list2td1"></td>
+				<td class="list2td3"><%- labelName %></td>
+				<td>
+					<input type="text" class="normal" id="labelName" name="labelName" maxlength="99"/>
+					<span class="my-tooltips" title="<%- tips.labelName %>">&nbsp;</span>
+				</td>
+			</tr>
+			<tr>
+				<td class="list2td1"></td>
+				<td class="list2td3"><%- displayName %></td>
+				<td>
+					<input type="text" class="normal" id="displayName" name="displayName" maxlength="99"/>
+					<span class="my-tooltips" title="<%- tips.displayName %>">&nbsp;</span>
+				</td>
+			</tr>
+			<tr>
+				<td class="list2td1"></td>
+				<td class="list2td3"><%- registerName %></td>
+				<td>
+					<input type="text" class="normal" id="registerName" name="registerName" maxlength="99"/>
+					<span class="my-tooltips" title="<%- tips.registerName %>">&nbsp;</span>
+				</td>
+			</tr>
+			<tr>
+				<td class="list2td1"></td>
+				<td class="list2td3"><span class="span-required">*</span><%- userName %></td>
+				<td>
+					<input type="text" class="normal" id="userName" name="userName" maxlength="99"/>
+					<span class="my-tooltips" title="<%- tips.userName %>">&nbsp;</span>
+				</td>
+			</tr>
+			<tr>
+				<td class="list2td1"></td>
+				<td class="list2td3"><%- password %></td>
+				<td>
+					<input type="password" class="normal" id="password" name="password" maxlength="99"/>
+					<span class="my-tooltips" title="<%- tips.password %>">&nbsp;</span>
+				</td>
+			</tr>
+			<tr>
+				<td class="list2td1"></td>
+				<td class="list2td3"><span class="span-required">*</span><%- sipServer %></td>
+				<td>
+					<input type="text" class="normal" id="sipServer" name="sipServer" maxlength="99"/>
+					&nbsp;<%- sipServerPort %>&nbsp;<input type="text"  class="port" id="sipServerPort" name="sipServerPort" />
+					<span class="my-tooltips" title="<%- tips.sipServer %>">&nbsp;</span>
+				</td>
+			</tr>
+			<tr>
+				<td class="list2td1"></td>
+				<td class="list2td3"><%- redundancy_proxy %></td>
+				<td>
+					<input type="text" class="normal" id="BackupSIPServerHost" name="BackupSIPServerHost" maxlength="99"/>
+					&nbsp;<%- sipServerPort %>&nbsp;<input type="text"  class="port" id="BackupSIPServerPort" name="BackupSIPServerPort" />
+					<span class="my-tooltips" title="<%- tips.redundancy_proxy %>">&nbsp;</span>
+				</td>
+			</tr>
+			<tr>
+				<td class="list2td1"></td>
+				<td class="list2td3"><%- enableOutboundProxyServer %></td>
+				<td>
+					<select id="enableOutboundProxyServer" name="enableOutboundProxyServer" class="normal">
+						<option value="0"><%- disable %></option>
+						<option value="1"><%- enable %></option>
+					</select>
+					<span class="my-tooltips" title="<%- tips.enableOutboundProxyServer %>">&nbsp;</span>
+				</td>
+			</tr>
+			<tr>
+				<td class="list2td1"></td>
+				<td class="list2td3"><%- outboundProxyServer %></td>
+				<td>
+					<input type="text" class="normal" id="outboundProxyServer" name="outboundProxyServer" maxlength="99"/>
+					&nbsp;<%- outboundProxyServerPort %>&nbsp;<input type="text"  class="port" id="outboundProxyServerPort" name="outboundProxyServerPort" />
+					<span class="my-tooltips" title="<%- tips.outboundProxyServer %>">&nbsp;</span>
+				</td>
+			</tr>
+			<tr>
+				<td class="list2td1"></td>
+				<td class="list2td3"><%- make_call_without_register %></td>
+				<td>
+					<select id="make_call_without_register" name="make_call_without_register" class="normal">
+						<option value="0"><%- disable %></option>
+						<option value="1"><%- enable %></option>
+					</select>
+					<span class="my-tooltips" title="<%- tips.make_call_without_register %>">&nbsp;</span>
+				</td>
+			</tr>
+			<tr>
+				<td class="list2td1"></td>
+				<td class="list2td3"><%- transport %></td>
+				<td>
+					<select id="transport" name="transport" class="normal">
+						<option value="1"><%- transportOpt0 %></option>
+						<option value="2"><%- transportOpt1 %></option>
+						<option value="3"><%- transportOpt2 %></option>
+						<option value="4" class="hide_style"><%- transportOpt3 %></option>
+					</select>
+					<span class="my-tooltips" title="<%- tips.transport %>">&nbsp;</span>
+				</td>
+			</tr>
+			<tr>
+				<td class="list2td1"></td>
+				<td class="list2td3"><%- TLSVersion %></td>
+				<td>
+					<select id="TLSVersion" name="TLSVersion" class="normal">
+						<option value="0">TLS 1.0</option>
+						<option value="1">TLS 1.1</option>
+						<option value="2">TLS 1.2</option>
+					</select>
+				</td>
+			</tr>
+
+			<tr>
+				<td class="list2td1"></td>
+				<td class="list2td3"><%- verifyServer %></td>
+				<td>
+					<select id="verifyServer" name="verifyServer" class="normal">
+						<option value="0"><%- disable %></option>
+						<option value="1"><%- enable %></option>
+					</select>
+				</td>
+			</tr>
+
+			<tr>
+				<td class="list2td1"></td>
+				<td class="list2td3"><%- natTraversal %></td>
+				<td>
+					<select id="natTraversal" name="natTraversal" class="normal">
+						<option value="0"><%- disable %></option>
+						<option value="1"><%- natTraversalOpt1 %></option>
+					</select>
+					<span class="my-tooltips" title="<%- tips.natTraversal %>">&nbsp;</span>
+				</td>
+			</tr>
+			<tr>
+				<td class="list2td1"></td>
+				<td class="list2td3"><%- stunServer %></td>
+				<td>
+					<input type="text" class="normal" id="stunServer" name="stunServer" maxlength="99"/>
+					&nbsp;<%- port %>&nbsp;<input type="text"  class="port" id="stunServerPort" name="stunServerPort" />
+					<span class="my-tooltips" title="<%- tips.stunServer %>">&nbsp;</span>
+				</td>
+			</tr>
+			<tr>
+				<td class="list2td1"></td>
+				<td class="list2td3"><%- voiceMail %></td>
+				<td>
+					<input type="text" class="normal" id="voiceMail" name="voiceMail" maxlength="28"/>
+					<span class="my-tooltips" title="<%- tips.voiceMail %>">&nbsp;</span>
+				</td>
+			</tr>
+			<tr>
+				<td class="list2td1"></td>
+				<td class="list2td3"><%- anonymousCall %></td>
+				<td>
+					<select id="anonymousCall" name="anonymousCall" class="normal">
+						<option value="0"><%- off %></option>
+						<option value="1"><%- on %></option>
+					</select>
+					<span class="my-tooltips" title="<%- tips.anonymousCall %>">&nbsp;</span>
+				</td>
+			</tr>
+			<tr>
+				<td class="list2td1"></td>
+				<td class="list2td3"><%- onCode %></td>
+				<td>
+					<input type="text" class="normal" id="onCode" name="onCode" maxlength="28"/>
+					<span class="my-tooltips" title="<%- tips.onCode %>">&nbsp;</span>
+				</td>
+			</tr>
+			<tr>
+				<td class="list2td1"></td>
+				<td class="list2td3"><%- offCode %></td>
+				<td>
+					<input type="text" class="normal" id="offCode" name="offCode" maxlength="28"/>
+					<span class="my-tooltips" title="<%- tips.offCode %>">&nbsp;</span>
+				</td>
+			</tr>
+
+			<tr>
+				<td class="list2td1"></td>
+				<td class="list2td3"><%- anonymousCallRejection %></td>
+				<td>
+					<select id="anonymousCallRejection" name="anonymousCallRejection" class="normal">
+						<option value="0"><%- off %></option>
+						<option value="1"><%- on %></option>
+					</select>
+					<span class="my-tooltips" title="<%- tips.anonymousCallRejection %>">&nbsp;</span>
+				</td>
+			</tr>
+			<tr>
+				<td class="list2td1"></td>
+				<td class="list2td3"><%- onCode %></td>
+				<td>
+					<input type="text" class="normal" id="onCodeRejection" name="onCodeRejection" maxlength="28"/>
+					<span class="my-tooltips" title="<%- tips.onCodeRejection %>">&nbsp;</span>
+				</td>
+			</tr>
+			<tr>
+				<td class="list2td1"></td>
+				<td class="list2td3"><%- offCode %></td>
+				<td>
+					<input type="text" class="normal" id="offCodeRejection" name="offCodeRejection" maxlength="28"/>
+					<span class="my-tooltips" title="<%- tips.offCodeRejection %>">&nbsp;</span>
+				</td>
+			</tr>
+
+			<tr>
+				<td class="list2td1"></td>
+				<td class="list2td3"><%- ringTones %></td>
+				<td>
+					<select id="ringTones" name="ringTones" class="normal">
+					</select>
+					<span class="my-tooltips" title="<%- tips.ringTones %>">&nbsp;</span>
+				</td>
+			</tr>
+		</tbody>
+
+	</table>
+
+	<div class="page-button">
+		<a id="save" href="javascript:;"><%- butConfirm %></a> 
+		&nbsp;&nbsp;&nbsp;&nbsp;
+		&nbsp;&nbsp;&nbsp;&nbsp;
+		<a id="reset" href="javascript:;"><%- butCancel %></a>  
+	</div>
+	</script>
+	</form>
+</div>

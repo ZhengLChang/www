@@ -1,0 +1,277 @@
+<script type="text/javascript">
+$(document).ready(function(){
+	TempUtil.render('form1Temp', 'form1', networkWIFIHtml.form1);
+
+	var origialJSON,
+		origialStr,
+		$form = $('#form1'),
+		$group2 = $form.find('.group2'),
+		$wifi_on_warning = $('#wifi_on_warning'),
+		$wifi_enable = $('input[name="wifi_enable"]'),
+		$wifi_ssid = $('#wifi_ssid'),
+		$wifi_key = $('#wifi_key'),
+		$wifi_key_tr = $('#wifi_key_tr')
+		showText = networkWIFIHtml.showText;
+
+	function renderData(data){
+		Page.setRadioFieldValue('wifi_enable', data.wifi_enable);
+
+		Page.setFormFieldValue('wifi_ssid', data.wifi_ssid);
+		Page.setFormFieldValue('wifi_key', data.wifi_key);
+
+		if(data.wifi_enable === 1){
+			$group2.show();
+			$wifi_on_warning.show();
+		} else {
+			$group2.hide();
+			$wifi_on_warning.hide();
+		}
+	}
+
+
+	function initPage(){
+		$('#save').linkbutton();  
+		$('#reset').linkbutton(); 
+	}
+
+	Page.postJSON({
+		url: MenuItem.nWifi.get,
+		success: function(data){
+			origialJSON = data;
+			renderData(data);
+			initPage();
+
+			Page.$iframe.show();
+			origialStr = $form.formSerialize();
+			Page.initTips();
+		}
+	});
+
+    $wifi_enable.change(function(){
+		var selected = $wifi_enable.filter(':checked').val();
+
+		if(selected === '1'){
+			$group2.show();
+			$wifi_on_warning.show();
+		} else {
+			$group2.hide();
+			$wifi_on_warning.hide();
+		}
+	});
+
+
+	function createTable(datas){
+		if(!(datas && datas.length)){
+			return '';
+		}
+
+		var stringBuf = [], item, itemLen, len = datas.length, i, j;
+		stringBuf.push('<table class="wifi_table">');
+		for(i = 0; i < len; i++){
+			item = datas[i];
+			itemLen = item.length;
+			stringBuf.push('<tr>');
+			if(i === 0){
+				for(j = 0; j < itemLen; j++){
+					stringBuf.push('<th>');
+					stringBuf.push(item[j]);
+					stringBuf.push('</th>');
+				}
+			} else {
+				if(/wep/i.test(item[1])){
+					continue;
+				}
+				stringBuf.push(String.format("<td>{0}</td>", i));
+				stringBuf.push(String.format("<td>{0}</td>", item[0]));
+				stringBuf.push(String.format("<td>{0}</td>", item[1]));
+
+				stringBuf.push('<td>');
+				stringBuf.push(String.format('<input type="radio" id="select{0}" />', i));
+				stringBuf.push(String.format('<input type="hidden" id="ssid{0}" value="{1}"/>', i, item[0]));
+				stringBuf.push('</td>');
+			}
+			stringBuf.push('</tr>');
+		}
+		stringBuf.push('</table>');
+		return stringBuf.join('');
+	}
+
+	function createWifiTable(datas){
+		var tipWin = '<div id="wifi_win"></div>';
+		$('body').append(tipWin);
+
+		var $tip_win = $('#wifi_win');
+
+		$tip_win.window({
+			title : showText.wifi_list_title,
+			modal : true,
+			resizable : false,
+			collapsible : false,
+			minimizable : false,
+			maximizable : false,
+			top: 70,
+			width: 700,
+			height : 500,
+			closed : true,
+			content: createTable(datas)
+		});
+
+		$tip_win.on('click', 'input[id^="select"]', function(){
+			var selectNum = this.id.slice(6);
+			var ssidVal = $('#ssid' + selectNum).val();
+
+			$wifi_ssid.val(ssidVal);
+			$wifi_key.val('');
+
+			$wifi_key_tr.show();
+			$wifi_key.focus();
+
+			$tip_win.window('close');
+		});
+
+		$tip_win.window('open');
+	}
+
+
+	$('#search_wifi').click(function(){
+		var jsonData = null;
+		SysUtil.showProgress({
+        	msg: '',
+        	text: showText.search_wifi,
+        	checkStatus: function(){
+        		return jsonData != null;
+        	},
+        	callback: function(){
+        		$.messager.progress('close');
+        		var wifiLists = [],
+					wifiTabelHeader = showText.wifi_table_header;
+					//wifiLists.push(wifiTabelHeader);
+        		var retJson = jsonData;
+				var len = retJson.length, i;
+				for(i = 0; i < len; i++){
+					wifiLists.push(retJson[i]);
+				}
+
+				wifiLists.unshift(wifiTabelHeader);
+				createWifiTable(wifiLists);
+        	}
+        });
+
+        Page.postJSON({
+            url: MenuItem.nWifi.search_wifi,
+			returnHtml: true,
+			data: 'test=test',
+			success: function(data){
+				try{
+            		jsonData = JSON.parse(data);
+            	}catch(ex){
+            		jsonData = [];
+            	}
+			},
+			complete: function(){
+				if(jsonData == null){
+					jsonData = [];
+				}
+			}
+		});
+	});
+
+    $('#save').click(function(){
+        var json = JSON.parmsToJSON($form), 
+            jsonData = null;
+		SysUtil.showProgress({
+        	msg: '',
+        	text: showText.submitting,
+        	checkStatus: function(){
+        		return jsonData != null;
+        	},
+        	callback: function(){
+        		$.messager.progress('close');
+        		AlertUtil.saveSuccess();
+        	}
+        });
+
+        Page.postJSON({
+            url: MenuItem.nWifi.set,
+			returnHtml: true,
+			data: JSON.serializeToParms(json),
+			success: function(data){
+			    try{
+            		jsonData = JSON.parse(data);
+            	}catch(ex){
+            		jsonData = {resultCode: 1};
+            	}
+			}, 
+			complete: function(){
+				if(jsonData == null){
+					jsonData = {resultCode: 1};
+				}
+			}
+		});
+	});
+
+
+	$('#reset').click(function(){
+		if(origialJSON){
+			renderData(origialJSON);
+		}
+	});
+});
+</script>
+
+<div class="detail_box">
+	<form id="form1">
+	<script type="text/template" id="form1Temp">
+	<table class="list2">
+		<tbody>			
+			<tr>
+				<td colspan="3" class="head2">
+					<%- wifi_setting %>
+					<span id="wifi_on_warning" style="color:red;display:none;"><%- wifi_on_warning %></span>
+				</td>
+			</tr>
+            <tr>
+				<td class="list2td1"></td>
+				<td class="list2td3"><%- wifi_enable %></td>
+				<td>
+					<input type="radio" id="wifi_enable0" name="wifi_enable" value="0" class="radio group1"/>
+					<label class="pointer" for="wifi_enable0"><%- off %></label>
+					&nbsp;&nbsp;&nbsp;&nbsp;
+					<input type="radio" id="wifi_enable1" name="wifi_enable" value="1" checked="checked" class="radio group1"/>
+					<label class="pointer" for="wifi_enable1"><%- on %></label>
+				</td>
+			</tr>
+
+            <tr class="group2">
+				<td class="key"></td>
+				<td>
+					<button id="search_wifi" type="button"><%- search_wifi %></button>
+				</td>
+			</tr>
+
+		    <tr class="group2">
+				<td class="list2td1"></td>
+				<td class="list2td3"><%- wifi_ssid %></td>
+				<td>
+					<input type="text" class="normal" id="wifi_ssid" name="wifi_ssid" maxlength="63"/>
+				</td>
+			</tr>
+			<tr class="group2">
+				<td class="list2td1"></td>
+				<td class="list2td3"><%- wifi_key %></td>
+				<td>
+					<input type="password" class="normal" id="wifi_key" name="wifi_key" maxlength="63"/>
+				</td>
+			</tr>
+		</tbody>
+	</table>
+
+	<div class="page-button">
+		<a id="save" href="javascript:;"><%- butConfirm %></a> 
+		&nbsp;&nbsp;&nbsp;&nbsp;
+		&nbsp;&nbsp;&nbsp;&nbsp;
+		<a id="reset" href="javascript:;"><%- butCancel %></a>  
+	</div>
+	</script>
+	</form>
+</div>

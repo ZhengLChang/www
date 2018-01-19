@@ -1,0 +1,285 @@
+<script type="text/javascript">
+$(document).ready(function(){
+	lineKeyHtml.form1.model = Page.model;
+	TempUtil.render('form1Temp', 'form1', lineKeyHtml.form1);
+
+	var origialJSON,
+		origialStr,
+		autoOption = String.format('<option value="7">{0}</option>', dssKeyHtml.form1.accountNumberOpt8),
+		$form = $('#form1');
+
+	function renderData(data){
+		_.each(data, function(item, i){
+			Page.setFormFieldValue("type_" + i, item[0]);
+			Page.setFormFieldValue("value_" + i, item[1]);
+			Page.setFormFieldValue("label_" + i, item[2]);
+			Page.setFormFieldValue("account_" + i, item[3]);
+			Page.setFormFieldValue("ext_" + i, item[4]);
+			handlerAccountChange(parseInt(item[0]), i);
+		});
+	}
+
+	function initPage(){
+		$('#save').linkbutton();  
+		$('#reset').linkbutton(); 
+	}
+	
+	Page.postJSON({
+		url: MenuItem.dLink.get,
+		success: function(data){
+			origialJSON = data;
+			renderData(data);
+			initPage();
+			
+			//TableUtil.setStripeTable3();
+			Page.$iframe.show();
+			origialStr = $form.formSerialize();
+		}
+	});
+	
+	
+	 $('#save').click(function(){
+		var json = JSON.parmsToJSON($form);
+		if(origialStr == $form.formSerialize()){
+			AlertUtil.saveNoChange();
+			return false;
+		}
+		var i, len = 6, type_prop, val_prop, type_num;
+		for(i = 0; i < len; i++){
+			key_prop = "type_" + i;
+			val_prop = 'value_' + i;
+			type_num = parseInt(json[key_prop])  || 0;
+			switch(type_num){
+				case KeyType.KEY_TYPE_DTMF:
+				case KeyType.KEY_TYPE_SPEEDDIAL:
+				case KeyType.KEY_TYPE_CALL_PARK:
+				case KeyType.KEY_TYPE_PREFIX:
+					if(!json[val_prop]){
+						$.messager.alert(alertMsg.titlePrompt, alertMsg.emptyContent,'info',  function(){
+							$('#' + val_prop).focus();
+						});
+						return false;
+					}
+					break;
+			}
+
+			if(json[key_prop] == KeyType.KEY_TYPE_DTMF){
+				/*
+				if(!/\d+/.test(json[val_prop])){
+					$.messager.alert(alertMsg.titlePrompt, alertMsg.invalidDTMF, 'info', function(){
+						$('#' + val_prop).focus();
+					});
+					return false;
+				}
+				*/
+			}
+		}
+		
+		Page.postJSON({
+			url: MenuItem.dLink.set,
+			data: JSON.serializeToParms(json),
+			success: function(data){
+				AlertUtil.saveSuccess();
+				origialJSON = json;
+				origialStr = $form.formSerialize();
+				
+			}
+		});
+	});
+	
+	$('#reset').click(function(){
+		if(origialJSON){
+			renderData(origialJSON);
+		}
+	});
+
+	function handlerChange(id, enables){
+		$('#value_' + id).myEnable(enables[0]);
+		$('#label_' + id).myEnable(enables[1]);
+		if(enables[2]){
+			$('#account_' + id).myEnable(enables[2]);
+		} else {
+			$('#account_' + id).val('').myEnable(enables[2]);
+		}
+		$('#ext_' + id).myEnable(enables[3]);
+	}
+	
+	var account1_6 = [KeyType.KEY_TYPE_LINE,
+	                  KeyType.KEY_TYPE_MESSAGE,
+	                  KeyType.KEY_TYPE_BLF,
+	                  KeyType.KEY_TYPE_BLF_LIST,
+	                  KeyType.KEY_TYPE_DIRECT_PICKUP,
+	                  KeyType.KEY_TYPE_CALL_PARK];
+	
+	function handlerAccount(keyVal, id){
+		if(_.contains(account1_6, keyVal)){
+			var account = $('#account_' + id + " option[value='7']");
+			if(account.length != 0){
+				account.remove();
+			}
+		} else {
+			var account = $('#account_' + id + " option[value='7']");
+			if(account.length == 0){
+				$('#account_' + id).prepend(autoOption);
+			}
+		}
+	}
+	
+	function handlerAccountChange(keyVal, id){
+
+		handlerAccount(keyVal, id);
+		
+		switch(keyVal){
+			case KeyType.KEY_TYPE_LINE:
+			case KeyType.KEY_TYPE_BLF_LIST:
+				handlerChange(id, [false, false, true, false]);
+				break;
+			case KeyType.KEY_TYPE_SPEEDDIAL:
+			case KeyType.KEY_TYPE_MESSAGE:
+			case KeyType.KEY_TYPE_DIRECT_PICKUP:
+			case KeyType.KEY_TYPE_GROUP_PICKUP:
+			case KeyType.KEY_TYPE_CALL_PARK:
+			case KeyType.KEY_TYPE_INTERCOM:
+				handlerChange(id, [true, true, true, false]);
+				break;
+			case KeyType.KEY_TYPE_SOFTKEY:
+			case KeyType.KEY_TYPE_CONFERENCE:
+			case KeyType.KEY_TYPE_HOLD:
+			case KeyType.KEY_TYPE_DND:
+			case KeyType.KEY_TYPE_REDIAL:
+			case KeyType.KEY_TYPE_DIRECTORY:
+			case KeyType.KEY_TYPE_CALL_RETURN:
+			case KeyType.KEY_TYPE_LDAP:
+				handlerChange(id, [false, true, false, false]);
+				break;
+			case KeyType.KEY_TYPE_BLF: 
+				handlerChange(id, [true, true, true, true]);
+				break;
+			case KeyType.KEY_TYPE_DTMF:
+			case KeyType.KEY_TYPE_FORWARD:
+			case KeyType.KEY_TYPE_TRANSFER:
+			case KeyType.KEY_TYPE_PREFIX:
+				handlerChange(id, [true, true, false, false]);
+				break;
+			case KeyType.KEY_TYPE_PAGING_LIST:
+				handlerChange(id, [false, true, false, false]);
+				break;
+			case KeyType.KEY_TYPE_MULTICAST_PAGING:
+				handlerChange(id, [true, true, false, true]);
+				break;
+			default:
+				handlerChange(id, [false, false, false, false]);
+				break;
+		}
+	}
+	
+	$('#form1').delegate('select.key-type', 'change', function(){
+		var id = this.id,
+			keyVal = this.value;
+		keyVal = parseInt(keyVal) || 0;
+		
+		id = id.split('_')[1] || 0;
+		
+		handlerAccountChange(keyVal, id);
+	});
+});
+</script>
+<div class="detail_box">
+	<form id="form1">
+	<script type="text/template" id="form1Temp">
+	<table class="list3">
+		<tbody>
+			<tr class="head3">
+				<td class="list3-td1"><%- key %></td>
+				<td class="td-border list3-td2"><%- type %></td>
+				<td class="td-border"><%- value %></td>
+				<td class="td-border"><%- label %></td>
+				<td class="td-border list3-td5"><%- account %></td>
+				<td class="td-border list3-td6"><%- ext %></td>
+			</tr>
+			<% _.each(lineKeyHtml.form1.lineKeyAutoChoice = (Page.productIdentification == productIdentification.A2x || Page.productIdentification == productIdentification.CT11) ? lineKeyHtml.form1.lineKeys_A2x : 
+					(Page.productIdentification == productIdentification.A4x || Page.productIdentification == productIdentification.A48) ? lineKeyHtml.form1.lineKeys_A4x : 
+					lineKeyHtml.form1.lineKeys, function(item, i){
+				if((model === 1) && (i > 3)){
+					return false;
+				}
+			%>
+			<tr>
+				<td class="list3-td1"><%- lineKey + (i+1) %>
+				</td>
+				<td> 
+					<select class="list3-input key-type" id="type_<%- i %>" name="type_<%- i %>">
+						<option value="31"><%- keyTypeOpt31 %></option>
+						<option value="1"><%- keyTypeOpt1 %></option>
+						<option value="2"><%- keyTypeOpt2 %></option>
+						
+						<!--<option value="4"><%- keyTypeOpt4 %></option>-->
+						<option value="5"><%- keyTypeOpt5 %></option>
+						
+						<!--<option value="8"><%- keyTypeOpt8 %></option>-->
+						<option value="9"><%- keyTypeOpt9 %></option>
+						<option value="10"><%- keyTypeOpt10 %></option>
+						<option value="11"><%- keyTypeOpt11 %></option>
+						<option value="12"><%- keyTypeOpt12 %></option>
+						<option value="13"><%- keyTypeOpt13 %></option>
+						<option value="14"><%- keyTypeOpt14 %></option>
+						<!--<option value="15"><%- keyTypeOpt15 %></option>
+						<option value="16"><%- keyTypeOpt16 %></option>-->
+						<option value="17"><%- keyTypeOpt17 %></option>
+						<option value="18"><%- keyTypeOpt18 %></option>
+						<option value="19"><%- keyTypeOpt19 %></option>
+						<option value="20"><%- keyTypeOpt20 %></option>
+						<option value="21"><%- keyTypeOpt21 %></option>
+						<option value="22"><%- keyTypeOpt22 %></option>
+						<option value="23"><%- keyTypeOpt23 %></option>
+						<option value="38"><%- keyTypeOpt38 %></option>
+						<option value="39"><%- keyTypeOpt39 %></option>
+					</select>
+				</td>
+				<td>
+					<input type="text" disabled="disabled" class="list3-input" id="value_<%- i %>" name="value_<%- i %>" maxlength="31"/>
+				</td>
+				<td>
+					<input type="text" disabled="disabled" class="list3-input" id="label_<%- i %>" name="label_<%- i %>" maxlength="98"/>
+				</td>
+				<td>
+					<select disabled="disabled" class="list3-input" id="account_<%- i %>" name="account_<%- i %>">
+					<option value="7"><%- accountNumberOpt8 %></option>
+					<% if(Page.accountNum >= 1) { %>
+						<option value="1"><%- accountNumberOpt1 %></option>
+					<% } %>
+					<% if(Page.accountNum >= 2) { %>
+						<option value="2"><%- accountNumberOpt2 %></option>
+					<% } %>
+					<% if(Page.accountNum >= 3) { %>
+						<option value="3"><%- accountNumberOpt3 %></option>
+					<% } %>
+					<% if(Page.accountNum >= 4) { %>
+						<option value="4"><%- accountNumberOpt4 %></option>
+					<% } %>
+					<% if(Page.accountNum >= 5) { %>
+						<option	value="5"><%- accountNumberOpt5 %></option>
+					<% } %>
+					<% if(Page.accountNum >= 6) { %>
+						<option value="6"><%- accountNumberOpt6 %></option>
+					<% } %>
+					</select>
+				</td>
+				<td>
+					<input type="text" disabled="disabled" class="list3-input" id="ext_<%- i %>" name="ext_<%- i %>" maxlength="254"/>
+				</td>
+			</tr>
+			<% }) %>
+		</tbody>
+		
+	</table>
+	
+	<div class="page-button">
+		<a id="save" href="javascript:;"><%- butConfirm %></a> 
+		&nbsp;&nbsp;&nbsp;&nbsp;
+		&nbsp;&nbsp;&nbsp;&nbsp;	
+		<a id="reset" href="javascript:;"><%- butCancel %></a>  
+	</div>
+	</script>
+	</form>
+</div>

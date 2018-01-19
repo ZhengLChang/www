@@ -1,0 +1,136 @@
+<script type="text/javascript">
+$(document).ready(function(){
+
+	Page.postJSON({
+		url: MenuItem.sStatus.get,
+		success: function(data){
+			//data = data.rows[0];
+			var verNames = [], 
+				verValues = [],
+				ver = statusHtml.version,
+				tips = statusHtml.tips,
+				verTitle = String.format('{0}<span class="my-tooltips" title="{1}">&nbsp;</span>', 
+										ver.verTitle, tips.verTip);
+
+			verNames.push(ver.product_name);
+			verNames.push(ver.fwVer);
+			verNames.push(ver.hwVer);
+
+			verValues.push(data.product_name);
+			verValues.push(data.fmVer);
+			verValues.push(data.hdVer);
+
+			var netConfigNames = [],
+				netConfigValues = [],
+				netConfig = statusHtml.networkConfig,
+				netConfigType = data.internetPortOption,
+				netConfigTitle = String.format('{0}<span class="my-tooltips" title="{1}">&nbsp;</span>',
+									netConfig.netConfigTitle, tips.netConfigTip);
+				
+			if(netConfigType < 1 || netConfigType > 3)
+			{
+				netConfigType = 1;
+			}
+			netConfigNames.push(netConfig.internetPortType);
+			netConfigValues.push(netConfig['internType' + netConfigType]);
+
+	
+			var netNames = [],
+				netValues = [],
+				net = statusHtml.network,
+				netTitle = String.format('{0}<span class="my-tooltips" title="{1}">&nbsp;</span>',
+											net.netTitle, tips.netTip);
+
+			netNames.push(net.internetPort);
+			netNames.push(net.ip);
+			netNames.push(net.subnetMask);
+			netNames.push(net.gatewag);
+			netNames.push(net.primaryDNS);
+			netNames.push(net.secondaryDNS);
+			netNames.push(net.wiredMac);
+			if(Page.is_support_wifi === 1)
+			{
+				netNames.push(net.WIFIMac);
+			}
+			netNames.push(net.vpnStatus);
+			netNames.push(net.vpnIp);
+
+			var portType = data.portType,
+				vpnStatus = data.vpnStatus;
+
+			if(portType < 0 || portType > 2){
+				portType = 0;
+			}
+			if(vpnStatus < 0 || vpnStatus > 3){
+				vpnStatus = 0;
+			}
+
+			netValues.push(net['portTypeOpt' + portType]);
+			netValues.push(data.ip);
+			netValues.push(data.subnetmask);
+			netValues.push(data.gateway);
+			netValues.push(data.primaryDns);
+			netValues.push(data.secondaryDns);
+			netValues.push(data.wiredMac);
+			if(Page.is_support_wifi === 1)
+			{
+				netValues.push(data.WIFIMac);
+			}
+			netValues.push(net['vpnStatusOpt' + vpnStatus]);
+			netValues.push(data.vpnIp);
+
+
+			var netIPv6Names = [],
+				netIPv6Values = [],
+				netIPv6 = statusHtml.networkIPv6,
+				netIPv6Title = String.format('{0}<span class="my-tooltips" title="{1}">&nbsp;</span>',
+											netIPv6.netTitle, tips.netTip);
+
+			netIPv6Names.push(netIPv6.internetPort);
+			netIPv6Names.push(netIPv6.ip);
+			netIPv6Names.push(netIPv6.gatewag);
+			netIPv6Names.push(netIPv6.primaryDNS);
+			netIPv6Names.push(netIPv6.secondaryDNS);
+
+			var portTypeIPv6 = data.portTypeIPv6;
+
+			if(portTypeIPv6 < 0 || portTypeIPv6 > 2){
+				portTypeIPv6 = 0;
+			}
+
+			netIPv6Values.push(netIPv6['portTypeOpt' + portTypeIPv6]);
+			netIPv6Values.push(data.ipIPv6);
+			netIPv6Values.push(data.gatewayIPv6);
+			netIPv6Values.push(data.primaryDnsIPv6);
+			netIPv6Values.push(data.secondaryDnsIPv6);
+
+
+			var verHtml = TableUtil.createListTable(verTitle, verNames, verValues, verNames.length);
+			var netConfigHtml = TableUtil.createListTable(netConfigTitle, netConfigNames, netConfigValues, netConfigNames.length);
+			var netHtml = TableUtil.createListTable(netTitle, netNames, netValues, netNames.length);
+			var netIPv6Html = TableUtil.createListTable(netIPv6Title, netIPv6Names, netIPv6Values, netIPv6Names.length);
+			$('#version').html(verHtml);
+			$('#networkConfig').html(netConfigHtml);
+			$('#network').html(netHtml);
+			$('#networkIPv6').html(netIPv6Html);
+
+			//TableUtil.setStripeTable();
+
+			if(netConfigType == 2)
+			{
+				$('#network').hide();
+			}
+			else if(netConfigType == 1)
+			{
+				$('#networkIPv6').hide();
+			}
+			Page.$iframe.show();
+			Page.initTips();
+		}
+	});
+});
+</script>
+<div id="version"></div>
+<div id="networkConfig"></div>
+<div id="network"></div>
+<div id="networkIPv6"></div>

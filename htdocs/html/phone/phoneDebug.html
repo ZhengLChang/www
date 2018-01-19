@@ -1,0 +1,106 @@
+<script type="text/javascript">
+$(document).ready(function(){
+	TempUtil.render('div1Temp', 'div1', phoneDebugHtml.div1);
+	
+	var $startCap = $('#startCap'),
+		$form = $('#div1'),
+		$stopCap = $('#stopCap'),
+		$exportPackage = $('#exportPackage'),
+		$exportDebug = $('#exportDebug');
+	
+	function initPage(data){	
+		if(data.is_tcpdump_run != -1)	
+		{
+			$startCap.myEnable(false);
+			$stopCap.myEnable(true);
+			$exportPackage.myEnable(false);
+		}
+		else
+		{
+			$startCap.myEnable(true);
+			$stopCap.myEnable(false);
+			$exportPackage.myEnable(true);
+		}
+	};
+	Page.postJSON({
+		url: MenuItem.pDebug.getCapStatus,
+		success: function(data){
+			origialJSON = data;
+			initPage(data);
+			Page.$iframe.show();
+			origialStr = $form.formSerialize();
+			Page.initTips();
+		}
+	});
+	$startCap.click(function(){
+		$startCap.myEnable(false);
+		$stopCap.myEnable(true);
+		$exportPackage.myEnable(false);
+		
+		Page.postJSON({
+			url: MenuItem.pDebug.startCap,
+			success: function(data){
+			}
+		});
+		
+	});
+	
+	$stopCap.click(function(){
+		$startCap.myEnable(true);
+		$stopCap.myEnable(false);
+		$exportPackage.myEnable(true);
+		
+		Page.postJSON({
+			url: MenuItem.pDebug.stopCap,
+			success: function(data){
+			}
+		});
+	});
+	
+	$exportPackage.click(function(){
+		var url = MenuItem.pDebug.exportPackage;
+		window.location.assign(url);
+	});
+	
+	$exportDebug.click(function(){
+		var url = MenuItem.pDebug.exportDebug;
+		window.location.assign(url);
+	});
+	
+	
+	Page.$iframe.show();
+});
+</script>
+<div class="detail_box">
+	<div id="div1">
+	<script type="text/template" id="div1Temp">
+	<table class="list2">
+		<tbody>
+			<tr class="head2">
+				<td colspan="3"><%- pcapFeature %></td>				
+			</tr>
+			<tr>
+				<td class="list2td1"></td>
+				<td class="list2td3"><%- pcapFeature %></td>
+				<td>
+					<button type="button" id="startCap"><%- start %></button>
+					<button type="button" id="stopCap" disabled="disabled" class="my-disable"><%- stop %></button>
+					<button type="button" id="exportPackage"><%- exportStr %></button>
+				</td>
+			</tr>
+
+			<tr class="head2">
+				<td colspan="3"><%- debug %></td>				
+			</tr>
+			<tr>
+				<td class="list2td1"></td>
+				<td class="list2td3"></td>
+				<td>
+					<button type="button" id="exportDebug"><%- exportStr %></button>
+				</td>
+			</tr>		
+		</tbody>
+	</table>
+	</script>
+	</div>
+</div>

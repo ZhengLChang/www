@@ -1,0 +1,190 @@
+<script type="text/javascript">
+$(document).ready(function(){
+	TempUtil.render('div1Temp', 'div1', phoneUpgradeHtml.div1);
+	var commonText = phoneUpgradeHtml.commonText;
+
+	function renderData(data){
+		Page.setSpanContent('fwVer', data.fwVer);
+		Page.setSpanContent('hdVer', data.hdVer);
+	}
+
+	Page.postJSON({
+		url: MenuItem.pUpgrade.getVer,
+		success: function(data){
+			renderData(data);
+			Page.$iframe.show();
+			Page.initTips();
+		}
+	}); 
+
+	$('#resetToFactory').click(function(){
+		AlertUtil.confirm(commonText.resetConfirm, function(r){
+			if(r){
+				Page.postJSON({
+					url: MenuItem.pUpgrade.resetUrl,
+					success: function(data){
+						if(data.return_code === 0){		
+							SysUtil.reboot();
+						}
+						else{
+							AlertUtil.alertMsg(commonText.resetFail)
+						}
+					}
+				});
+			}
+		});
+	});
+
+	$('#reboot').click(function(){
+		AlertUtil.confirm(commonText.rebootConfirm, function(r){
+			if(r){
+				Page.postJSON({
+					url: MenuItem.pUpgrade.rebootUrl,
+					returnHtml: true,
+					success: function(data){
+						SysUtil.reboot();
+					}
+				});
+			}
+		});
+	});
+
+	$('#upgrade').click(function(e){
+		var $form = $('#uploadfw'),
+			jsonData = null,
+			$selectFirmware = $('#selectFirmware'),
+			updateFileName = $selectFirmware.val();
+
+		if(updateFileName === ''){
+			AlertUtil.fileIsEmpty();
+            		return false;
+		}
+		if(/(.*)+\.fw$/.test(updateFileName) === false){
+			window.parent.AlertUtil.upgradeFileFormateErr();
+            		return false;
+		}
+		if(/[\\\/]/.test(updateFileName)) {
+        	var matchs = updateFileName.match(/(.*)?[\\\/](.*)/);
+        	updateFileName = matchs[2];
+        }
+
+		AlertUtil.confirm(commonText.uploadFilePrompt + '</br>' + updateFileName, function(r){
+			if(r){
+				$form.ajaxSubmit({
+				    async: false,
+		            url: MenuItem.pUpgrade.upgradeUrl,
+		            type: 'POST',
+		            dataType: 'text',
+		            beforeSubmit: function() {		               
+		                Page.postJSON({
+		                	async: false,
+		        			url: MenuItem.pUpgrade.preUpgrade,
+		        			data: 'updateFileName=' + updateFileName,
+		        			success: function(data){
+		        			}
+		        		});
+
+		                SysUtil.showProgress({
+		                	msg: commonText.upgradeMsg,
+		                	text: commonText.upgradeText,
+		                	checkStatus: function(){
+		                		return jsonData != null;
+		                	},
+		                	callback: function(){
+		                		$.messager.progress('close');
+		                		if(jsonData.return_code == 0){
+		                			SysUtil.reboot(140);
+		                		} else {
+		                			AlertUtil.alertMsg(commonText.upgradeFail);
+		                		}
+		                	}
+		                });
+
+		                return true;
+		            },
+		            success: function(data, statusText) {
+		            	try{		            
+		            		jsonData = JSON.parse(data);
+		            	}catch(ex){		           
+		            		jsonData = {return_code: -1};
+		            	}                     
+		            },
+		            error: function(responseText, statusText) {           
+		            	jsonData = {return_code: 0};
+		            }
+		        });
+			}
+		});
+	});
+});
+</script>
+<div class="detail_box">
+	<div id="div1">
+	<script type="text/template" id="div1Temp">
+	<table class="list2">
+		<tbody>
+			<tr class="head2">
+				<td colspan="3"><%- ver %></td>				
+			</tr>
+			<tr>
+				<td class="list2td1"></td>
+				<td class="list2td3"><%- fmVer %></td>
+				<td><span id="fwVer"></span></td>
+			</tr>
+			<tr>
+				<td class="list2td1"></td>
+				<td class="list2td3"><%- hdVer %></td>
+				<td><span id="hdVer"></span></td>
+			</tr>
+
+			<tr class="head2">
+				<td colspan="3"><%- resetToFactory %></td>				
+			</tr>
+			<tr>
+				<td class="list2td1"></td>
+				<td class="list2td3"><%- resetToFactory %></td>
+				<td>
+					<button id="resetToFactory" type="button"><%- resetToFactory %></button>
+				</td>
+			</tr>
+
+			<tr class="head2">
+				<td colspan="3"><%- reboot %></td>				
+			</tr>
+			<tr>
+				<td class="list2td1"></td>
+				<td class="list2td3"><%- reboot %></td>
+				<td>
+					<button id="reboot" type="button"><%- reboot %></button>
+				</td>
+			</tr>
+
+			<tr class="head2">
+				<td colspan="3">
+					<%- upgradeHeader %>
+					<span class="my-tooltips" title="<%- tips.upgradeHeader %>">&nbsp;</span>
+				</td>				
+			</tr>
+			<tr>
+				<td class="list2td1"></td>
+				<td class="list2td3"><%- selectFw %></td>
+				<td>
+					<form id="uploadfw" enctype="multipart/form-data" method="post">
+						<input type="file" id="selectFirmware" name="selectFirmware" />				
+					</form>
+				</td>
+			</tr>
+			<tr>
+				<td class="list2td1"></td>
+				<td class="list2td3"></td>
+				<td>
+					<button type="button" id="upgrade"><%- upgrade %></button>
+				</td>
+			</tr>						
+
+		</tbody>
+
+	</table>
+	</script>
+	</div>
+</div>

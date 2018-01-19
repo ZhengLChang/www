@@ -1,0 +1,140 @@
+<script type="text/javascript">
+$(document).ready(function(){
+	TempUtil.render('form1Temp', 'form1', phoneRemoteControlHtml.form1);
+	
+	var origialJSON,
+		origialStr,
+		$form = $('#form1');
+	
+	function renderData(data){
+	Page.setFormFieldValue('ActionURIAllowIPList', data.ActionURIAllowIPList);
+	Page.setFormFieldValue('cstaControl', data.cstaControl);
+	}
+	
+	function initPage(){
+		$('#save').linkbutton();  
+		$('#reset').linkbutton(); 
+	}
+	
+	function is_valid_ip_list(ipListToSplit)
+	{
+		var ipRegExp = /((([1-9]|[1-9]\d|1\d\d|2[0-5][0-5])\b\.)(([0-9]|[1-9]\d|1\d\d|2[0-5][0-5])\b\.){2}(([1-9]|[1-9]\d|1\d\d|2[0-5][0-5])\b)|any|[ ]{1,})/;
+		var ipArray = ipListToSplit.split(',');
+		var indexCount;
+		for(indexCount = 0; indexCount < ipArray.length; indexCount++)
+		{
+			if(ipListToSplit != '' && !ipRegExp.test(ipArray[indexCount]))
+			{
+				return false;
+			}
+		}
+		return true;
+	}
+
+	Page.postJSON({
+		url: MenuItem.pRemoteControl.get,
+		success: function(data){
+			origialJSON = data;
+			renderData(data);
+			initPage();
+			
+			Page.$iframe.show();
+			origialStr = $form.formSerialize();
+			Page.initTips();
+		}
+	});
+	
+	$('#save').click(function(){
+		if(ValidHelper.invalid($form)){
+			AlertUtil.invalidVal();
+			return false;
+		}
+		if(origialStr == $form.formSerialize()){
+			AlertUtil.saveNoChange();
+			return false;
+		}
+/*
+		if(!is_valid_ip_list($('#ActionURIAllowIPList').val()))	
+		{
+			AlertUtil.invalidVal();
+			return false;
+		}
+*/
+		var json = JSON.parmsToJSON($form);
+		
+		Page.postJSON({
+			url: MenuItem.pRemoteControl.set,
+			data: JSON.serializeToParms(json),
+			success: function(data){
+				AlertUtil.saveSuccess(function(){
+					if(origialJSON.loginTimeout != json.loginTimeout){
+						Page.loginTimeout = parseInt(json.loginTimeout, 10) || 5;
+						clearTimeout(Page.intervalId);
+						Page.setPageTimeoutLogout(Page.loginTimeout);
+					} 
+					origialJSON = json;
+					origialStr = $form.formSerialize();	
+				});
+			}
+		});
+	});
+	
+	var $inputNums = null;
+	$('#reset').click(function(){
+		if(origialJSON){
+			renderData(origialJSON);
+			$inputNums = ValidHelper.numHelper($inputNums);
+		}
+	});
+	
+	$('#form1').delegate('td.title', 'click', function(){
+		var $this = $(this),
+			className = $this.prop('class');
+		
+		if(className.indexOf('add-hide') > -1){
+			$this.removeClass('add-hide').addClass('reduce-show');
+			$this.parent().next().show();
+		} else {
+			$this.removeClass('reduce-show').addClass('add-hide');
+			$this.parent().next().hide();
+		}
+	});
+});
+</script>
+<div class="detail_box">
+	<form id="form1">
+	<script type="text/template" id="form1Temp">
+	<table class="list2">
+		<tbody>
+		<tr class="head2">
+			<td colspan="3"><%- remoteControl %></td>				
+		</tr>
+		<tr>
+			<td class="list2td1"></td>
+			<td class="list2td3" for="ActionURIAllowIPList"><%- actionURIIPList %></td>
+			<td>
+				<input type="text" class="big" id="ActionURIAllowIPList" name="ActionURIAllowIPList" maxlength="511">
+			</td>
+		</tr>
+		<tr>
+			<td class="list2td1"></td>
+			<td class="list2td3">CSTA</td>
+			<td>
+				<select id="cstaControl" name="cstaControl" class="normal">
+					<option value="0"><%- disable %></option>
+					<option value="1"><%- enable %></option>
+				</select>
+			</td>
+		</tr>
+		</tbody>
+	</table>
+
+	<div class="page-button">
+		<a id="save" href="javascript:;"><%- butConfirm %></a> 
+		&nbsp;&nbsp;&nbsp;&nbsp;
+		&nbsp;&nbsp;&nbsp;&nbsp;	
+		<a id="reset" href="javascript:;"><%- butCancel %></a>  
+	</div>
+	</script>
+	</form>
+</div>

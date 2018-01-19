@@ -1,0 +1,111 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd">
+<html>
+	<head>
+		<title>401</title>
+		<meta http-equiv="Content-Type" content="text/html; charset=UTF-8"/>
+		<meta http-equiv="Pragma" content="no-cache"/>
+		<meta http-equiv="Cache-Control" content="no-cache"/>
+		<meta http-equiv="Expires" content="0"/>
+		<meta http-equiv="X-UA-Compatible" content="IE=edge" />
+		
+		<script type="text/javascript" src="/js/common/json2.min.js"></script>
+		<script type="text/javascript" src="/js/jquery/jquery-1.7.2.min.js"></script>
+	</head>
+	<body>
+	<div id="errorInfo" style="margin: 10px; padding: 10px; background: #fff;">
+	</div>
+	<script type="text/javascript">
+		$(document).ready(function(){
+		function isImplementedOnload(script){
+			if('onload' in script){
+				return true;
+			}
+		    script.setAttribute('onload','');
+		    return typeof script.onload == 'function';
+		}			
+		function loadJs(url, callback){
+			var f = arguments.callee;
+		    if (!("queue" in f))
+		        f.queue = {};
+		    var queue = f.queue;
+		    if (url in queue) {
+		        if ($.isFunction(callback)) {
+		                 callback();
+		        }
+		        return;
+		    }			 
+		    var script = document.createElement("script");
+		    script.type = "text/javascript";
+		    if(isImplementedOnload(script)){
+		    	script.onload = function(){
+		    			script.onload = null;
+		    	        if($.isFunction(callback)){
+		    	        	callback();
+		    	        }     
+		    	};
+		    } else {
+		    	if(script.attachEvent){
+		    		var handle = function(){
+		    			if(script.readyState == 'loaded' || script.readyState == 'complete'){
+		    				script.detachEvent('onreadystatechange', handle);    		
+		            		if($.isFunction(callback)){
+		        	        	callback();
+		        	        }   
+		    			}
+		        	};
+		        	script.attachEvent('onreadystatechange', handle);
+		    	}
+		    }
+		    script.src = url;
+		    document.getElementsByTagName("head")[0].appendChild(script);
+		}
+		var lang = {
+				L0: 'en', //英语
+				L1: 'fr', //法语
+				L2: 'he', //希伯来语
+				L3: 'ru', //俄语
+				L4: 'es', //西班牙语
+				L5: 'zh', //中文(简体)
+				L6: 'fa', //波斯语
+				L7: 'hu', //匈牙利语
+				L8: 'pl', //波兰语
+				L9: 'pt', //葡萄牙语
+				L10: 'tr', //土耳其语
+				L11: 'de',  //德语
+				L12: 'it'   //意大利语
+			};
+			$.ajax({
+				url: '/status/init.cgi?get_init',
+				type: 'POST',
+				contentType: 'application/x-www-form-urlencoded; charset=UTF-8',
+				dataType: 'text',
+				success: function(datas){
+					var data;
+					try {
+						data = JSON.parse(datas);
+					} catch (e) {
+						data = {
+							lang: 0,
+							loginTimeout: 5
+						};
+					}
+					var langStr = lang['L' + data.lang] || 'en';
+					var langjs = '/js/lang/language-' + langStr + '.js';
+					loadJs(langjs, function(){
+							var showTexts = [],
+								texts = status401Html;
+							showTexts.push('<p style="font-weight: bold;">');
+							showTexts.push(texts.errorInfo1);
+							showTexts.push('</p><br/><p>');
+							showTexts.push(texts.errorInfo2);
+							showTexts.push('</p><br/><hr/><p>');
+							showTexts.push(texts.errorInfo3);
+							showTexts.push('</p>');
+							$('#errorInfo').html(showTexts.join(''));
+					});
+				}
+			});
+		});
+		</script>
+	</body>
+</html>

@@ -1,0 +1,631 @@
+<script type="text/javascript">
+$(document).ready(function(){
+	TempUtil.render('form1Temp', 'form1', phoneFeaturesHtml.form1);
+	
+	var origialJSON,
+		origialStr,
+		$form = $('#form1'),
+		$group1 = $('#form1 .group1');
+	
+	function createAutoAnswerDelayOption(data)
+	{
+		var i = 0, result = [];
+		for(i = 1; i <= 5; i++)
+		{
+			if(i != data.autoAnswerDelay)
+			{
+				result.push(String.format('<option value="{0}">{1}</option>', i, i));
+			}
+			else if(i == data.autoAnswerDelay)
+			{
+				result.push(String.format('<option value="{0}" selected>{1}</option>', i, i));
+			}
+		}
+		return result.join('');
+	}
+	function renderData(data){
+		Page.setFormFieldValue('interDigitTime', data.interDigitTime);
+		Page.setFormFieldValue('autoAnswer', data.autoAnswer);
+//		Page.setFormFieldValue('autoAnswerDelay', data.autoAnswerDelay);
+		Page.setFormFieldValue('ignoreMissedCall', data.ignoreMissedCall);
+		Page.setFormFieldValue('callWaiting', data.callWaiting);
+		Page.setFormFieldValue('hotline', data.hotline);
+		Page.setFormFieldValue('hotlineTimeout', data.hotlineTimeout);
+		Page.setFormFieldValue('keyAsSend', data.keyAsSend);
+		Page.setFormFieldValue('dialNowTimeout', data.dialNowTimeout);
+		Page.setFormFieldValue('busyToneTimer', data.busyToneTimer);
+		Page.setFormFieldValue('returnCodeWhenRefuse', data.returnCodeWhenRefuse);
+		Page.setFormFieldValue('returnCodeWhenDnd', data.returnCodeWhenDnd);
+		Page.setFormFieldValue('rfc2543Hold', data.rfc2543Hold);
+		Page.setFormFieldValue('useOutboundProxyInDialog', data.useOutboundProxyInDialog);
+		Page.setFormFieldValue('loginTimeout', data.loginTimeout);
+		Page.setFormFieldValue('hidedtmf', data.hidedtmf);
+		Page.setFormFieldValue('multicastCodec', data.multicastCodec);
+		Page.setFormFieldValue('watchdog', data.watchdog);
+		
+		Page.setFormFieldValue('callWaitingTone', data.callWaitingTone);
+		Page.setFormFieldValue('headset', data.headset);
+		Page.setFormFieldValue('handset', data.handset);
+		Page.setFormFieldValue('handfree', data.handfree);
+		Page.setFormFieldValue('ringer', data.ringer);
+		Page.setFormFieldValue('headsetSend', data.headsetSend);
+		Page.setFormFieldValue('handsetSend', data.handsetSend);
+		Page.setFormFieldValue('handfreeSend', data.handfreeSend);
+		Page.setFormFieldValue('ringerDeviceForHeadset', data.ringerDeviceForHeadset);
+		
+		Page.setFormFieldValue('blindTransferOnHook', data.blindTransferOnHook);
+		Page.setFormFieldValue('attendedTransferOnHook', data.attendedTransferOnHook);
+		Page.setFormFieldValue('transferOnConHangUp', data.transferOnConHangUp);
+		Page.setFormFieldValue('transferModeViaDsskey', data.transferModeViaDsskey);
+		
+		Page.setFormFieldValue('directCallPickup', data.directCallPickup);
+		Page.setFormFieldValue('directCallPickupCode', data.directCallPickupCode);
+		Page.setFormFieldValue('groupCallPickup', data.groupCallPickup);
+		Page.setFormFieldValue('groupCallPickupCode', data.groupCallPickupCode);
+
+		Page.setFormFieldValue('accept_sip_trust_server_only', data.accept_sip_trust_server_only);
+		Page.setFormFieldValue('recordUserId', data.recordUserId);
+		Page.setFormFieldValue('ext_function', data.ext_function);
+		Page.setFormFieldValue('hold_on_conference', data.hold_on_conference);
+		$('#autoAnswerDelay').html(createAutoAnswerDelayOption(data));
+	}
+	
+	function initPage(){
+		var codeValid = {
+			validType: 'codeValid'
+		},
+		num_1_14 = {
+			min: 1,
+			max: 14
+		},
+		num_0_180 = {
+			min: 0,
+			max: 180
+		},
+		num_1_1000 = {
+			min: 1,
+			max: 1000
+		},
+		num_0_8 = {
+			min: 1,
+			max: 8
+		},
+		num_06_6 = {
+			min: -6,
+			max: 6
+		};
+		if(Page.productIdentification != productIdentification.A48 && Page.productIdentification != productIdentification.A68)
+		{
+			$group1.hide();
+		}
+		$('#interDigitTime').numberbox(num_1_14);
+		$('#hotlineTimeout').numberbox(num_0_180);
+		$('#dialNowTimeout').numberbox();
+		$('#loginTimeout').numberbox(num_1_1000);
+		
+		$('#headset').numberbox(num_0_8);
+		$('#handset').numberbox(num_0_8);
+		$('#handfree').numberbox(num_0_8);
+		$('#ringer').numberbox(num_0_8);
+		
+		$('#headsetSend').numberbox(num_06_6);
+		$('#handsetSend').numberbox(num_06_6);
+		$('#handfreeSend').numberbox(num_06_6);
+		
+		$('#save').linkbutton();  
+		$('#reset').linkbutton(); 
+	}
+	
+	Page.postJSON({
+		url: MenuItem.pFeatures.get,
+		success: function(data){
+			origialJSON = data;
+			renderData(data);
+			initPage();
+			
+			Page.$iframe.show();
+			origialStr = $form.formSerialize();
+			Page.initTips();
+		}
+	});
+	
+	$('#save').click(function(){
+		if(ValidHelper.invalid($form)){	
+			AlertUtil.invalidVal();
+			return false;
+		}
+		if(origialStr == $form.formSerialize()){
+			AlertUtil.saveNoChange();
+			return false;
+		}
+		var json = JSON.parmsToJSON($form);
+		Page.postJSON({
+			url: MenuItem.pFeatures.set,
+			data: JSON.serializeToParms(json),
+			success: function(data){
+				AlertUtil.saveSuccess(function(){
+					if(origialJSON.loginTimeout != json.loginTimeout){
+						Page.loginTimeout = parseInt(json.loginTimeout, 10) || 5;
+						clearTimeout(Page.intervalId);
+						Page.setPageTimeoutLogout(Page.loginTimeout);
+					} 
+					origialJSON = json;
+					origialStr = $form.formSerialize();	
+				});
+			}
+		});
+	});
+	
+	var $inputNums = null;
+	$('#reset').click(function(){
+		if(origialJSON){
+			renderData(origialJSON);
+			$inputNums = ValidHelper.numHelper($inputNums);
+		}
+	});
+	
+	$('#form1').delegate('td.title', 'click', function(){
+		var $this = $(this),
+			className = $this.prop('class');
+		
+		if(className.indexOf('add-hide') > -1){
+			$this.removeClass('add-hide').addClass('reduce-show');
+			$this.parent().next().show();
+		} else {
+			$this.removeClass('reduce-show').addClass('add-hide');
+			$this.parent().next().hide();
+		}
+	});
+});
+</script>
+<div class="detail_box">
+	<form id="form1">
+	<script type="text/template" id="form1Temp">
+	<table class="list2">
+		<tbody>
+			<tr>
+				<td class="list2td1"></td>
+				<td class="reduce-show title">
+					<%- generalInfo %>
+				</td>
+			</tr>
+			<tr>
+				<td class="list2td1"></td>
+				<td>
+					<table class="list2">						
+						<tr>
+							<td class="list2td2"></td>
+							<td class="list2td3"><%- interDigitTime %></td>
+							<td>
+								<input type="text" class="normal" id="interDigitTime" name="interDigitTime"/>&nbsp;(1~14)
+								<span class="my-tooltips" title="<%- tips.interDigitTime %>">&nbsp;</span>
+							</td>
+						</tr>
+						<tr>
+							<td class="list2td2"></td>
+							<td class="list2td3"><%- autoAnswer %></td>
+							<td>
+								<select id="autoAnswer" name="autoAnswer" class="normal">
+									<option value="0"><%- disable %></option>
+					                <option value="1" selected="selected"><%- enable %></option>
+								</select>
+								<span class="my-tooltips" title="<%- tips.autoAnswer %>">&nbsp;</span>
+							</td>
+						</tr>
+						<tr>
+							<td class="list2td2"></td>
+							<td class="list2td3"><%- autoAnswerDelay %></td>
+							<td>
+								<select id="autoAnswerDelay" name="autoAnswerDelay" class="normal">
+								</select>
+								<span class="my-tooltips" title="<%- tips.autoAnswerDelay %>">&nbsp;</span>
+							</td>
+						</tr>
+						<tr>
+							<td class="list2td2"></td>
+							<td class="list2td3"><%- ignoreMissedCall %></td>
+							<td>
+								<select id="ignoreMissedCall" name="ignoreMissedCall" class="normal">
+									<option value="0"><%- disable %></option>
+					                		<option value="1"><%- enable %></option>
+								</select>
+							</td>
+						</tr>
+
+						<tr>
+							<td class="list2td2"></td>
+							<td class="list2td3"><%- callWaiting %></td>
+							<td>
+								<select id="callWaiting" name="callWaiting" class="normal">
+									<option value="0"><%- disable %></option>
+					                <option value="1"><%- enable %></option>
+								</select>
+								<span class="my-tooltips" title="<%- tips.callWaiting %>">&nbsp;</span>
+							</td>
+						</tr>
+						<tr>
+							<td class="list2td2"></td>
+							<td class="list2td3"><%- hotline %></td>
+							<td>
+								<input type="text" class="normal" id="hotline" name="hotline" maxlength="31"/>
+								<span class="my-tooltips" title="<%- tips.hotline %>">&nbsp;</span>
+							</td>
+						</tr>
+						<tr>
+							<td class="list2td2"></td>
+							<td class="list2td3"><%- hotlineTimeout %></td>
+							<td>
+								<input type="text" class="normal" id="hotlineTimeout" name="hotlineTimeout"/>
+								<span class="my-tooltips" title="<%- tips.hotlineTimeout %>">&nbsp;</span>
+							</td>
+						</tr>
+						<tr>
+							<td class="list2td2"></td>
+							<td class="list2td3"><%- keyAsSend %></td>
+							<td>
+								<select id="keyAsSend" name="keyAsSend" class="normal">
+									<option value="0"><%- disable %></option>
+					                <option value="1" selected="selected">#</option>
+					                <option value="2">*</option>
+								</select>
+								<span class="my-tooltips" title="<%- tips.keyAsSend %>">&nbsp;</span>
+							</td>
+						</tr>
+						<tr>
+							<td class="list2td2"></td>
+							<td class="list2td3"><%- dialNowTimeout %></td>
+							<td>
+								<input type="text" class="normal" id="dialNowTimeout" name="dialNowTimeout" maxlength="9"/>
+								<span class="my-tooltips" title="<%- tips.dialNowTimeout %>">&nbsp;</span>
+							</td>
+						</tr>
+						<tr>
+							<td class="list2td2"></td>
+							<td class="list2td3"><%- busyToneTimer %></td>
+							<td>
+								<select id="busyToneTimer" name="busyToneTimer" class="normal">
+									<option value="0">0</option>
+					                <option value="3">3</option>
+					                <option value="5">5</option>
+								</select>
+								<span class="my-tooltips" title="<%- tips.busyToneTimer %>">&nbsp;</span>
+							</td>
+						</tr>
+						<tr>
+							<td class="list2td2"></td>
+							<td class="list2td3"><%- returnCodeWhenRefuse %></td>
+							<td>
+								<select id="returnCodeWhenRefuse" name="returnCodeWhenRefuse" class="normal">
+									<option value="404"><%- r404 %></option>
+                					<option value="480"><%- r480 %></option>
+                					<option value="486" selected="selected"><%- r486 %></option>
+								</select>
+								<span class="my-tooltips" title="<%- tips.returnCodeWhenRefuse %>">&nbsp;</span>
+							</td>
+						</tr>
+						<tr>
+							<td class="list2td2"></td>
+							<td class="list2td3"><%- returnCodeWhenDnd %></td>
+							<td>
+								<select id="returnCodeWhenDnd" name="returnCodeWhenDnd" class="normal">
+									<option value="404"><%- r404 %></option>
+                					<option value="480" selected="selected"><%- r480 %></option>
+                					<option value="486"><%- r486 %></option>
+								</select>
+								<span class="my-tooltips" title="<%- tips.returnCodeWhenDnd %>">&nbsp;</span>
+							</td>
+						</tr>
+						<tr>
+							<td class="list2td2"></td>
+							<td class="list2td3"><%- rfc2543Hold %></td>
+							<td>
+								<select id="rfc2543Hold" name="rfc2543Hold" class="normal">
+									<option value="0"><%- disable %></option>
+					                <option value="1"><%- enable %></option>					              
+								</select>
+								<span class="my-tooltips" title="<%- tips.rfc2543Hold %>">&nbsp;</span>
+							</td>
+						</tr>
+						<tr>
+							<td class="list2td2"></td>
+							<td class="list2td3"><%- useOutboundProxyInDialog %></td>
+							<td>
+								<select id="useOutboundProxyInDialog" name="useOutboundProxyInDialog" class="normal">
+									<option value="0"><%- disable %></option>
+					                <option value="1" selected="selected"><%- enable %></option>					              
+								</select>
+								<span class="my-tooltips" title="<%- tips.useOutboundProxyInDialog %>">&nbsp;</span>
+							</td>
+						</tr>
+						<tr>
+							<td class="list2td2"></td>
+							<td class="list2td3"><%- loginTimeout %></td>
+							<td>
+								<input type="text" class="normal" id="loginTimeout" name="loginTimeout"/>
+								<span class="my-tooltips" title="<%- tips.loginTimeout %>">&nbsp;</span>
+							</td>
+						</tr>
+						<tr>
+							<td class="list2td2"></td>
+							<td class="list2td3"><%- hidedtmf %></td>
+							<td>
+								<select id="hidedtmf" name="hidedtmf" class="normal" >
+									<option value="0"><%- disable %></option>
+					                <option value="1"><%- enable %></option>				              
+								</select>
+							</td>
+						</tr>
+						<tr>
+							<td class="list2td2"></td>
+							<td class="list2td3"><%- multicastCodec %></td>
+							<td>
+								<select id="multicastCodec" name="multicastCodec" class="normal" >
+									<option value="PCMU">PCMU</option>
+									<option value="PCMA">PCMA</option>
+									<option value="G729">G729</option>
+									<option value="G722">G722</option>
+								</select>
+							</td>
+						</tr>
+						<tr>
+							<td class="list2td2"></td>
+							<td class="list2td3"><%- watchdog %></td>
+							<td>
+								<select id="watchdog" name="watchdog" class="normal" >
+									<option value="0"><%- disable %></option>
+					                <option value="1"><%- enable %></option>				              
+								</select>
+							</td>
+						</tr>
+						<tr>
+							<td class="list2td2"></td>
+							<td class="list2td3"><%- accept_sip_trust_server_only %></td>
+							<td>
+								<select id="accept_sip_trust_server_only" name="accept_sip_trust_server_only" class="normal" >
+									<option value="0"><%- disable %></option>
+					                <option value="1"><%- enable %></option>				              
+								</select>
+								<span class="my-tooltips" title="<%- tips.acceptSipTrustServerOnly %>">&nbsp;</span>
+							</td>
+						</tr>
+						<tr>
+							<td class="list2td2"></td>
+							<td class="list2td3"><%- recordUserId %></td>
+							<td>
+								<input type="text" class="normal" id="recordUserId" name="recordUserId" maxlength="31"/>
+							</td>
+						</tr>
+						<tr class="normal group1">
+							<td class="list2td2"></td>
+							<td class="list2td3"><%- extFunction %></td>
+							<td>
+								<select id="ext_function" name="ext_function" class="normal" >
+									<option value="0"><%- RET %></option>
+					                		<option value="1"><%- EHS %></option> 
+								</select>
+							</td>
+						</tr>
+
+						<tr>
+							<td class="list2td2"></td>
+							<td class="list2td3"><%- holdOnConference %></td>
+							<td>
+								<select id="hold_on_conference" name="hold_on_conference" class="normal" >
+									<option value="0"><%- disable %></option>
+					                		<option value="1"><%- enable %></option> 
+								</select>
+							</td>
+						</tr>
+
+
+					</table>
+				</td>
+			</tr>
+			<tr>
+				<td class="list2td1"></td>
+				<td class="add-hide title">
+					<%- audioSettings %>
+				</td>
+			</tr>
+			<tr style="display: none">
+				<td class="list2td1"></td>
+				<td>
+					<table class="list2">
+						<tr>
+							<td class="list2td2"></td>
+							<td class="list2td3"><%- callWaitingTone %></td>
+							<td>
+								<select id="callWaitingTone" name="callWaitingTone" class="normal">
+									<option value="0"><%- disable %></option>
+					                <option value="1" selected="selected"><%- enable %></option>					              
+								</select>
+								<span class="my-tooltips" title="<%- tips.callWaitingTone %>">&nbsp;</span>
+							</td>
+						</tr>
+						<tr>
+							<td class="list2td2"></td>
+							<td class="list2td3"><%- headset %></td>
+							<td>
+								<input type="text" class="normal" id="headset" name="headset"/>
+								&nbsp;<span>(1~8)</span>
+							</td>
+						</tr>
+						<tr>
+							<td class="list2td2"></td>
+							<td class="list2td3"><%- handset %></td>
+							<td>
+								<input type="text" class="normal" id="handset" name="handset"/>
+								&nbsp;<span>(1~8)</span>
+							</td>
+						</tr>
+						<tr>
+							<td class="list2td2"></td>
+							<td class="list2td3"><%- handfree %></td>
+							<td>
+								<input type="text" class="normal" id="handfree" name="handfree"/>
+								&nbsp;<span>(1~8)</span>
+							</td>
+						</tr>
+						<tr>
+							<td class="list2td2"></td>
+							<td class="list2td3"><%- ringer %></td>
+							<td>
+								<input type="text" class="normal" id="ringer" name="ringer"/>
+								&nbsp;<span>(1~8)</span>
+							</td>
+						</tr>
+						<tr>
+							<td class="list2td2"></td>
+							<td class="list2td3"><%- headsetSend %></td>
+							<td>
+								<input type="text" class="normal" id="headsetSend" name="headsetSend"/>
+								&nbsp;<span>(-6~6)</span>
+							</td>
+						</tr>
+						<tr>
+							<td class="list2td2"></td>
+							<td class="list2td3"><%- handsetSend %></td>
+							<td>
+								<input type="text" class="normal" id="handsetSend" name="handsetSend"/>
+								&nbsp;<span>(-6~6)</span>
+							</td>
+						</tr>
+						<tr>
+							<td class="list2td2"></td>
+							<td class="list2td3"><%- handfreeSend %></td>
+							<td>
+								<input type="text" class="normal" id="handfreeSend" name="handfreeSend"/>
+								&nbsp;<span>(-6~6)</span>
+							</td>
+						</tr>
+						<tr>
+							<td class="list2td2"></td>
+							<td class="list2td3"><%- ringerDeviceForHeadset %></td>
+							<td>
+								<select id="ringerDeviceForHeadset" name="ringerDeviceForHeadset" class="normal">
+									<option value="0" selected="selected"><%- ringerDeviceForHeadsetOpt0 %></option>
+					                <option value="1"><%- ringerDeviceForHeadsetOpt1 %></option>					         				              
+								</select>
+								<span class="my-tooltips" title="<%- tips.ringerDeviceForHeadset %>">&nbsp;</span>
+							</td>
+						</tr>
+					</table>
+				</td>
+			</tr>
+			<tr>
+				<td class="list2td1"></td>
+				<td class="add-hide title">
+					<%- transferSettings %>
+				</td>
+			</tr>
+			<tr style="display: none">
+				<td class="list2td1"></td>
+				<td>
+					<table class="list2">
+						<tr>
+							<td class="list2td2"></td>
+							<td class="list2td3"><%- blindTransferOnHook %></td>
+							<td>
+								<select id="blindTransferOnHook" name="blindTransferOnHook" class="normal">
+									<option value="0"><%- disable %></option>
+					                <option value="1" selected="selected"><%- enable %></option>					              
+								</select>
+								<span class="my-tooltips" title="<%- tips.blindTransferOnHook %>">&nbsp;</span>
+							</td>
+						</tr>						
+						<tr>
+							<td class="list2td2"></td>
+							<td class="list2td3"><%- attendedTransferOnHook %></td>
+							<td>
+								<select id="attendedTransferOnHook" name="attendedTransferOnHook" class="normal">
+									<option value="0"><%- disable %></option>
+					                <option value="1" selected="selected"><%- enable %></option>					              
+								</select>
+								<span class="my-tooltips" title="<%- tips.attendedTransferOnHook %>">&nbsp;</span>
+							</td>
+						</tr>
+						<tr>
+							<td class="list2td2"></td>
+							<td class="list2td3"><%- transferOnConHangUp %></td>
+							<td>
+								<select id="transferOnConHangUp" name="transferOnConHangUp" class="normal">
+									<option value="0"><%- disable %></option>
+					                <option value="1"><%- enable %></option>					              
+								</select>
+								<span class="my-tooltips" title="<%- tips.transferOnConHangUp %>">&nbsp;</span>
+							</td>
+						</tr>
+						<tr>
+							<td class="list2td2"></td>
+							<td class="list2td3"><%- transferModeViaDsskey %></td>
+							<td>
+								<select id="transferModeViaDsskey" name="transferModeViaDsskey" class="normal">
+									<option value="0"><%- transferModeViaDsskeyOpt0 %></option>
+                					<option value="1"><%- transferModeViaDsskeyOpt1 %></option>
+                					<option value="2" selected="selected"><%- transferModeViaDsskeyOpt2 %></option>				              
+								</select>
+							</td>
+						</tr>
+					</table>
+				</td>
+			</tr>
+			<tr>
+				<td class="list2td1"></td>
+				<td class="add-hide title">
+					<%- callPickup %>
+				</td>
+			</tr>
+			<tr style="display: none">
+				<td class="list2td1"></td>
+				<td>
+					<table class="list2">
+						<tr>
+							<td class="list2td2"></td>
+							<td class="list2td3"><%- directCallPickup %></td>
+							<td>
+								<select id="directCallPickup" name="directCallPickup" class="normal">
+									<option value="0"><%- disable %></option>
+					                <option value="1"><%- enable %></option>					              
+								</select>
+							</td>
+						</tr>
+						<tr>
+							<td class="list2td2"></td>
+							<td class="list2td3"><%- directCallPickupCode %></td>
+							<td>
+								<input type="text" class="normal" id="directCallPickupCode" name="directCallPickupCode" maxlength="511"/>
+							</td>
+						</tr>
+						<tr>
+							<td class="list2td2"></td>
+							<td class="list2td3"><%- groupCallPickup %></td>
+							<td>
+								<select id="groupCallPickup" name="groupCallPickup" class="normal" >
+									<option value="0"><%- disable %></option>
+					                <option value="1"><%- enable %></option>				              
+								</select>
+							</td>
+						</tr>
+						<tr>
+							<td class="list2td2"></td>
+							<td class="list2td3"><%- groupCallPickupCode %></td>
+							<td>
+								<input type="text" class="normal" id="groupCallPickupCode" name="groupCallPickupCode" maxlength="511"/>
+							</td>
+						</tr>
+					</table>
+				</td>
+			</tr>
+		
+		</tbody>
+	</table>
+	
+	<div class="page-button">
+		<a id="save" href="javascript:;"><%- butConfirm %></a> 
+		&nbsp;&nbsp;&nbsp;&nbsp;
+		&nbsp;&nbsp;&nbsp;&nbsp;	
+		<a id="reset" href="javascript:;"><%- butCancel %></a>  
+	</div>
+	</script>
+	</form>
+</div>

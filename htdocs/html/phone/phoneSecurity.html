@@ -1,0 +1,147 @@
+<script type="text/javascript">
+$(document).ready(function(){
+	TempUtil.render('form1Temp', 'form1', phoneSecurityHtml.form1);
+	var showText = phoneSecurityHtml.showText,
+		$form = $('#form1');
+	
+	function renderData(){
+		initPage();
+		Page.$iframe.show();
+	}
+	
+	var $userType = $('#userType'),
+		$currentPasswd = $('#currentPasswd'),
+		$newPasswd = $('#newPasswd'),
+		$confirmPasswd = $('#confirmPasswd');
+	function initPage(){
+		if(Page.username === UserName.admin){
+			$userType.change(function(){
+				if(this.value === '0'){
+					$currentPasswd.myEnable();
+				} else {
+					$currentPasswd.myEnable(false);
+				}
+			});
+		}
+		if(Page.username === UserName.user){
+			$userType.html('<option value="1">user</option>');
+		}
+		
+		$confirmPasswd.validatebox({
+			validType: 'equals["#newPasswd"]',
+			invalidMessage: showText.pwdNoMatch,
+			delay: 500
+		});
+		
+		$('#save').linkbutton();  
+		$('#reset').linkbutton(); 
+	}
+	
+	function cleanInput(){
+		$userType.val('');
+		$currentPasswd.val('');
+		$newPasswd.val('');
+		$confirmPasswd.val('');
+		$userType.change();
+	}
+	
+	renderData();
+	
+	$('#save').click(function(){
+		if($confirmPasswd.validatebox('isValid') === false){
+			AlertUtil.invalidVal();
+			return false;
+		}
+		var json = JSON.parmsToJSON($form);
+		if(json.newPasswd === '' && json.confirmPasswd !== ''){
+			AlertUtil.invalidVal(function(){
+				$newPasswd.focus();
+			});
+			return false;
+		}
+		if(json.newPasswd !== '' && json.confirmPasswd === ''){
+			AlertUtil.invalidVal(function(){
+				$confirmPasswd.focus();
+			});
+			return false;
+		}
+		if(Page.username === UserName.admin){
+			json.currentUser = 0;
+		} else {
+			json.currentUser = 1;
+		}
+		Page.postJSON({
+			url: MenuItem.pSecurity.set,
+			data: JSON.serializeToParms(json),
+			success: function(data){
+				if(data.return_code === 0){
+					AlertUtil.saveSuccess(function(){
+						cleanInput();
+					});
+				} else {
+					AlertUtil.alertMsg(showText.modifyFailed);
+				}
+			}
+		});
+	});
+	
+	$('#reset').click(function(){
+		cleanInput();
+	});
+	
+	Page.initTips();
+});
+</script>
+<div class="detail_box">
+	<form id="form1">
+	<script type="text/template" id="form1Temp">
+	<table class="list2">
+		<tbody>				
+			<tr class="head2">
+				<td colspan="3"><%- passwdModify %></td>				
+			</tr>
+			<tr>
+				<td class="list2td1"></td>
+				<td class="list2td3"><%- userType %></td>
+				<td>
+					<select id="userType" name="userType" class="normal">
+						<option value="0">admin</option>
+						<option value="1">user</option>
+					</select>
+					<span class="my-tooltips" title="<%- tips.userType %>">&nbsp;</span>
+				</td>
+			</tr>
+			<tr>
+				<td class="list2td1"></td>
+				<td class="list2td3"><%- currentPasswd %></td>
+				<td>
+					<input type="password" class="normal" id="currentPasswd" name="currentPasswd" maxlength="29"/>
+				</td>
+			</tr>
+			<tr>
+				<td class="list2td1"></td>
+				<td class="list2td3"><%- newPasswd %></td>
+				<td>
+					<input type="password" class="normal" id="newPasswd" name="newPasswd" maxlength="29"/>
+				</td>
+			</tr>
+			<tr>
+				<td class="list2td1"></td>
+				<td class="list2td3"><%- confirmPasswd %></td>
+				<td>
+					<input type="password" class="normal" id="confirmPasswd" name="confirmPasswd" maxlength="29"/>
+				</td>
+			</tr>
+								
+		</tbody>
+		
+	</table>
+	<div class="page-button">
+		<a id="save" href="javascript:;"><%- butConfirm %></a> 
+		&nbsp;&nbsp;&nbsp;&nbsp;
+		&nbsp;&nbsp;&nbsp;&nbsp;	
+		<a id="reset" href="javascript:;"><%- butCancel %></a>  
+	</div>
+	</script>
+	</form>
+</div>

@@ -1,0 +1,505 @@
+<script type="text/javascript">
+$(document).ready(function(){
+	TempUtil.render('form1Temp', 'form1', phoneDNDAndForwardHtml.form1);
+
+	var origialJSON,
+		origialStr,
+		$forwardAccountNumber = $('#forwardAccountNumber'),
+		$DNDAccountNumber = $('#DNDAccountNumber'),
+		AccountDisplayNameList = [],
+		$form = $('#form1');
+	function createAccountOption(data, value)
+	{
+		var result = [], i = 0;
+		for(i = 0; i < AccountDisplayNameList.length; i++)
+		{
+			if(AccountDisplayNameList[i] != "NULL" && value != i)
+			{
+				result.push(String.format('<option value="{0}">{1}</option>', i, AccountDisplayNameList[i]));
+			}
+			else if(AccountDisplayNameList[i] != "NULL")
+			{
+				result.push(String.format('<option value="{0}" selected>{1}</option>', i, AccountDisplayNameList[i]));
+			}
+		}
+		return result.join('');
+	}
+	function renderData(data){
+		Page.setFormFieldValue('forwardAuthorizedNumbers', data.forwardAuthorizedNumbers);
+		Page.setFormFieldValue('forwardEmergencyEnable', data.forwardEmergencyEnable);
+		Page.setRadioFieldValue('forwardMode', data.forwardMode);
+
+		Page.setFormFieldValue('always', data.always);
+		Page.setFormFieldValue('alwaysTarget', data.alwaysTarget);
+		Page.setFormFieldValue('alwaysOnCode', data.alwaysOnCode);
+		Page.setFormFieldValue('alwaysOffCode', data.alwaysOffCode);
+		
+		Page.setFormFieldValue('busy', data.busy);
+		Page.setFormFieldValue('busyTarget', data.busyTarget);
+		Page.setFormFieldValue('busyOnCode', data.busyOnCode);
+		Page.setFormFieldValue('busyOffCode', data.busyOffCode);
+		
+		Page.setFormFieldValue('noAnswer', data.noAnswer);
+		Page.setFormFieldValue('afterRingTime', data.afterRingTime);
+		Page.setFormFieldValue('noAnswerTarget', data.noAnswerTarget);
+		Page.setFormFieldValue('noAnswerOnCode', data.noAnswerOnCode);
+		Page.setFormFieldValue('noAnswerOffCode', data.noAnswerOffCode);
+
+
+
+		Page.setFormFieldValue('DNDEmergencyEnable', data.DNDEmergencyEnable);
+		Page.setFormFieldValue('DNDAuthorizedNumbers', data.DNDAuthorizedNumbers);
+		/*
+		Page.setFormFieldValue('forwardAccountNumber', data.curForwardAccountNum);
+		Page.setFormFieldValue('DNDAccountNumber', data.curDNDAccountNum);
+		*/
+		AccountDisplayNameList = data.AccountDisplayNameList;
+		$forwardAccountNumber.html(createAccountOption(data, parseInt($('#forwardAccountNumber').val())));
+		$DNDAccountNumber.html(createAccountOption(data, parseInt($('#DNDAccountNumber').val())));
+		Page.setRadioFieldValue('DNDMode', data.DNDMode);
+		Page.setRadioFieldValue('DNDEnable', data.DNDEnable);
+		Page.setFormFieldValue('DNDOnCode', data.DNDOnCode);
+		Page.setFormFieldValue('DNDOffCode', data.DNDOffCode);
+	}
+
+	function initPage(){
+		$('input[name="forwardMode"]').change();
+		$('input[name="DNDMode"]').change();
+		$('#save').linkbutton();  
+		$('#reset').linkbutton(); 
+	}
+
+	Page.postJSON({
+		url: MenuItem.pDNDAndForward.get,
+		data: "accountNum=" + ((1 << 16) + 1),
+		success: function(data){
+			origialJSON = data;
+			renderData(data);
+			initPage();
+			Page.$iframe.show();
+			origialStr = $form.formSerialize();
+			Page.initTips();
+		}
+	}); 
+
+	$('#save').click(function(){
+		if(origialStr == $form.formSerialize()){
+			AlertUtil.saveNoChange();
+			return ;
+		}
+		var className = ['always', 'busy', 'noAnswer'];
+		var memberName = ['alwaysTarget', 'busyTarget', 'noAnswerTarget'];
+		var json = JSON.parmsToJSON($form);
+		for(var i = 0; i < className.length; i++)
+		{
+			if($('#' + className[i]).val() == 1 &&
+				$('#' + memberName[i]).val() == "")
+			{
+				$.messager.alert(alertMsg.titlePrompt, alertMsg.emptyContent, 'info', function(){
+					$('#' + memberName[i]).focus();
+				});
+				return ;
+			}
+		}
+
+		Page.postJSON({
+			url: MenuItem.pDNDAndForward.set,
+			data: JSON.serializeToParms(json),
+			success: function(data){
+				AlertUtil.saveSuccess();
+				origialJSON = json;
+				origialStr = $form.formSerialize();
+			}
+		});
+	});
+
+	var $inputNums = null;
+	$('#reset').click(function(){
+		if(origialJSON){
+			renderData(origialJSON);
+
+			$inputNums = ValidHelper.numHelper($inputNums);
+		}
+	});
+
+	var DNDAndFwdAccNum;
+	function getDNDAndFwdAccNum(){
+		var forwardModeValue = $("input[name='forwardMode']:checked").val();
+		var DNDModeValue = $("input[name='DNDMode']:checked").val();
+		var forwardAccountNumberValue = parseInt($('#forwardAccountNumber').val());
+		var DNDAccountNumberValue = parseInt($('#DNDAccountNumber').val());
+		
+		//alert(forwardAccountNumberValue);
+		if(isNaN(forwardAccountNumberValue))
+		{
+			DNDAccountNumberValue = 0;
+			forwardAccountNumberValue = 0;
+		}
+		if(forwardModeValue == 0 && DNDModeValue == 0)
+		{
+			DNDAndFwdAccNum = ((forwardAccountNumberValue + 10) << 16) + (DNDAccountNumberValue + 10);
+		}
+		else if(forwardModeValue == 0 && DNDModeValue == 1)
+		{
+			DNDAndFwdAccNum = ((forwardAccountNumberValue + 10) << 16) + (9);
+		}
+		else if(forwardModeValue == 1 && DNDModeValue == 0)
+		{
+			DNDAndFwdAccNum = ((9) << 16) + (DNDAccountNumberValue + 10);
+		}
+		else/* if(forwardModeValue == 1 && DNDModeValue == 1)*/
+		{
+			DNDAndFwdAccNum = ((9) << 16) + (9);
+		}
+	}
+	
+	var $group13;
+	$('input[name="forwardMode"]').change(function(){
+		var selected = $("input[name='forwardMode']:checked").val();
+		var accountNum;
+		if(!$group13){
+			$group13 = $('#form1 .group13');
+		}
+
+		if(selected == 0){
+			$group13.myEnable(true);
+		}
+		else
+		{
+			$group13.myEnable(false);
+		}
+		
+		getDNDAndFwdAccNum();
+		accountNum = DNDAndFwdAccNum;
+
+		Page.postJSON({
+			url: MenuItem.pDNDAndForward.get,
+			data: "accountNum=" + accountNum,
+			success: function(data){
+				origialJSON = data;
+				renderData(data);
+
+				$inputNums = ValidHelper.numHelper($inputNums);
+				//origialStr = $form.formSerialize();
+			}
+		}); 
+	});
+	$('#forwardAccountNumber').change(function(){
+		$('#DNDAccountNumber').change();
+	});
+
+	var $group24;
+	$('input[name="DNDMode"]').change(function(){
+		var selected = $("input[name='DNDMode']:checked").val();
+		var accountNum;
+		if(!$group24){
+			$group24 = $('#form1 .group24');
+		}
+		if(selected == 0){
+			$group24.myEnable(true);
+		}
+		else
+		{
+			$group24.myEnable(false);
+		}
+
+		getDNDAndFwdAccNum();
+		accountNum = DNDAndFwdAccNum;
+
+		Page.postJSON({
+			url: MenuItem.pDNDAndForward.get,
+			data: "accountNum=" + accountNum,
+			success: function(data){
+				origialJSON = data;
+				renderData(data);
+
+				$inputNums = ValidHelper.numHelper($inputNums);
+			//	origialStr = $form.formSerialize();
+			}
+		}); 
+	});
+	$('#DNDAccountNumber').change(function(){
+		var accountNum = this.value;
+		if(parseInt($('#forwardAccountNumber').val()) > 6)
+		{
+			accountNum = ((1 << 16) + 1);
+		}
+		else
+		{
+			getDNDAndFwdAccNum();
+			accountNum = DNDAndFwdAccNum;
+		}
+		Page.postJSON({
+			url: MenuItem.pDNDAndForward.get,
+			data: "accountNum=" + accountNum,
+			success: function(data){
+				origialJSON = data;
+				renderData(data);
+
+				$inputNums = ValidHelper.numHelper($inputNums);
+				origialStr = $form.formSerialize();
+			}
+		}); 
+	});
+});
+</script>
+<div class="detail_box">
+	<form id="form1">
+	<script type="text/template" id="form1Temp">
+	<table class="list2">
+		<tbody>
+<!- Forward ->
+			<tr class="head2">
+				<td colspan="3"><%- forward %></td>
+			</tr>
+
+			<tr>
+				<td class="list2td1"></td>
+				<td class="list2td3"><%- emergency %></td>
+				<td>
+					<select id="forwardEmergencyEnable" name="forwardEmergencyEnable" class="normal group11">
+						<option value="0"><%- disable %></option>
+						<option value="1"><%- enable %></option>
+					</select>
+				</td>
+			</tr>
+			<tr>
+				<td class="list2td1"></td>
+				<td class="list2td3"><%- authNum %></td>
+				<td>
+					<input type="text" class="normal group12" id="forwardAuthorizedNumbers" name="forwardAuthorizedNumbers" maxlength="99"/>
+			<!--		<span class="my-tooltips" title="<%- tips.forwardAuthorizedNumbers %>">&nbsp;</span> -->
+				</td>
+			</tr>
+			
+	     		<tr>
+				<td class="list2td1"></td>
+				<td class="list2td3"><%- mode %></td>
+				<td>
+					<input type="radio" id="forwardMode1" name="forwardMode" value="1" class="radio group1"/>
+					<label class="pointer" for="forwardMode1"><%- phone %></label>
+					&nbsp;&nbsp;&nbsp;&nbsp;
+					<input type="radio" id="forwardMode0" name="forwardMode" value="0" checked="checked" class="radio group1"/>
+					<label class="pointer" for="forwardMode0"><%- custom %></label>
+				</td>
+			</tr>
+
+	     		<tr>
+				<td class="list2td1"></td>
+				<td class="list2td3"><%- account %></td>
+				<td>
+					<select id="forwardAccountNumber" name="forwardAccountNumber" class="normal group13">
+					</select>
+				</td>
+			</tr>
+
+			<tr class="head3">
+				<td class="list2td2"></td>
+				<td class="list2td3"><%- always %></td>
+				<td>
+					<select id="always" name="always" class="normal">
+					<option value="0"><%- off %></option>
+					<option value="1"><%- on %></option>
+					</select>
+					</td>
+			</tr>
+			<tr>
+				<td class="list2td2"></td>
+				<td class="list2td3"><%- target %></td>
+				<td>
+					<input type="text" class="normal group14" id="alwaysTarget" name="alwaysTarget" maxlength="31"/>
+					<span class="my-tooltips" title="<%- tips.alwaysTarget %>">&nbsp;</span>
+				
+				</td>
+			</tr>
+			<tr>
+				<td class="list2td2"></td>
+				<td class="list2td3"><%- onCode %></td>
+				<td>
+				<input type="text" class="normal group14" id="alwaysOnCode" name="alwaysOnCode" maxlength="31"/>
+				<span class="my-tooltips" title="<%- tips.alwaysOnCode %>">&nbsp;</span>
+				</td>
+			</tr>
+			<tr>
+				<td class="list2td2"></td>
+				<td class="list2td3"><%- offCode %></td>
+				<td>
+				<input type="text" class="normal group14" id="alwaysOffCode" name="alwaysOffCode" maxlength="31"/>
+				<span class="my-tooltips" title="<%- tips.alwaysOffCode %>">&nbsp;</span>
+				</td>
+			</tr>
+			<tr class="head3">
+				<td class="list2td2"></td>
+				<td class="list2td3"><%- busy %></td>
+				<td>
+					<select id="busy" name="busy" class="normal">
+					<option value="0"><%- off %></option>
+					<option value="1"><%- on %></option>
+					</select>
+				</td>
+			</tr>
+			<tr>
+				<td class="list2td2"></td>
+				<td class="list2td3"><%- target %></td>
+				<td>
+					<input type="text" class="normal group15" id="busyTarget" name="busyTarget" maxlength="31"/>
+					<span class="my-tooltips" title="<%- tips.busyTarget %>">&nbsp;</span>
+				</td>
+			</tr>
+			<tr>
+				<td class="list2td2"></td>
+				<td class="list2td3"><%- onCode %></td>
+				<td>
+					<input type="text" class="normal group15" id="busyOnCode" name="busyOnCode" maxlength="31"/>
+					<span class="my-tooltips" title="<%- tips.busyOnCode %>">&nbsp;</span>
+				</td>
+			</tr>
+			<tr>
+				<td class="list2td2"></td>
+				<td class="list2td3"><%- offCode %></td>
+				<td>
+					<input type="text" class="normal group15" id="busyOffCode" name="busyOffCode" maxlength="31"/>
+					<span class="my-tooltips" title="<%- tips.busyOffCode %>">&nbsp;</span>
+				</td>
+			</tr>
+			<tr class="head3">
+				<td class="list2td2"></td>
+				<td class="list2td3"><%- noAnswer %></td>
+				<td>
+					<select id="noAnswer" name="noAnswer" class="normal">
+					<option value="0"><%- off %></option>
+					<option value="1"><%- on %></option>
+					</select>
+				</td>
+			</tr>
+			<tr>
+				<td class="list2td2"></td>
+				<td class="list2td3"><%- afterRingTime %></td>
+				<td>
+				<select id="afterRingTime" name="afterRingTime" class="normal group16">
+					<option value="0">0</option>
+					<option value="6">6</option>
+					<option value="12">12</option>
+					<option value="18">18</option>
+				       	<option value="24">24</option>
+					<option value="30">30</option>
+					<option value="36">36</option>
+					<option value="42">42</option>
+					<option value="48">48</option>
+					<option value="54">54</option>
+					<option value="60" selected="selected">60</option>
+				</select>
+				<span class="my-tooltips" title="<%- tips.afterRingTime %>">&nbsp;</span>
+				</td>
+			</tr>
+			<tr>
+				<td class="list2td2"></td>
+				<td class="list2td3"><%- target %></td>
+				<td>
+					<input type="text" class="normal group16" id="noAnswerTarget" name="noAnswerTarget" maxlength="31"/>
+					<span class="my-tooltips" title="<%- tips.noAnswerTarget %>">&nbsp;</span>
+					
+				</td>
+			</tr>
+			<tr>
+				<td class="list2td2"></td>
+				<td class="list2td3"><%- onCode %></td>
+				<td>
+					<input type="text" class="normal group16" id="noAnswerOnCode" name="noAnswerOnCode" maxlength="31"/>
+					<span class="my-tooltips" title="<%- tips.noAnswerOnCode %>">&nbsp;</span>
+				</td>
+			</tr>
+			<tr>
+				<td class="list2td2"></td>
+				<td class="list2td3"><%- offCode %></td>
+				<td>
+					<input type="text" class="normal group16" id="noAnswerOffCode" name="noAnswerOffCode" maxlength="31"/>
+					<span class="my-tooltips" title="<%- tips.noAnswerOffCode %>">&nbsp;</span>
+				</td>
+			</tr>
+
+<!- DND ->
+			<tr class="head2">
+				<td colspan="3">DND</td>
+			</tr>
+
+			<tr>
+				<td class="list2td1"></td>
+				<td class="list2td3"><%- emergency %></td>
+				<td>
+					<select id="DNDEmergencyEnable" name="DNDEmergencyEnable" class="normal group21">
+						<option value="0"><%- disable %></option>
+						<option value="1"><%- enable %></option>
+					</select>
+				</td>
+			</tr>
+
+			<tr>
+				<td class="list2td1"></td>
+				<td class="list2td3"><%- authNum %></td>
+				<td>
+					<input type="text" class="normal group22" id="DNDAuthorizedNumbers" name="DNDAuthorizedNumbers" maxlength="99"/>
+		<!--			<span class="my-tooltips" title="<%- tips.DNDAuthorizedNumbers %>">&nbsp;</span> -->
+				</td>
+			</tr>
+			
+	     		<tr>
+				<td class="list2td1"></td>
+				<td class="list2td3"><%- mode %></td>
+				<td>
+					<input type="radio" id="DNDMode1" name="DNDMode" value="1" class="radio group23"/>
+					<label class="pointer" for="DNDMode1"><%- phone %></label>
+					&nbsp;&nbsp;&nbsp;&nbsp;
+					<input type="radio" id="DNDMode0" name="DNDMode" value="0" checked="checked" class="radio group23"/>
+					<label class="pointer" for="DNDMode0"><%- custom %></label>
+				</td>
+			</tr>
+	     		<tr>
+				<td class="list2td1"></td>
+				<td class="list2td3"><%- account %></td>
+				<td>
+					<select id="DNDAccountNumber" name="DNDAccountNumber" class="normal group24">
+
+					</select>
+				</td>
+			</tr>
+	     		<tr>
+				<td class="list2td1"></td>
+				<td class="list2td3"><%- dndStatus %></td>
+				<td>
+					<input type="radio" id="DNDEnable1" name="DNDEnable" value="1" class="radio group25"/>
+					<label class="pointer" for="DNDEnable1"><%- on %></label>
+					&nbsp;&nbsp;&nbsp;&nbsp;
+					<input type="radio" id="DNDEnable0" name="DNDEnable" value="0" checked="checked" class="radio group25"/>
+					<label class="pointer" for="DNDEnable0"><%- off %></label>
+				</td>
+			</tr>
+			<tr>
+				<td class="list2td2"></td>
+				<td class="list2td3"><%- dndOnCode %></td>
+				<td>
+					<input type="text" class="normal group26" id="DNDOnCode" name="DNDOnCode" maxlength="31" />
+					<span class="my-tooltips" title="<%- tips.dndOnCode %>">&nbsp;</span>
+				</td>
+			</tr>
+			<tr>
+				<td class="list2td2"></td>
+				<td class="list2td3"><%- dndOffCode %></td>
+				<td>
+					<input type="text" class="normal group27" id="DNDOffCode" name="DNDOffCode" maxlength="31" />
+					<span class="my-tooltips" title="<%- tips.dndOffCode %>">&nbsp;</span>
+				</td>
+			</tr>
+		</tbody>
+
+	</table>
+
+	<div class="page-button">
+		<a id="save" href="javascript:;"><%- butConfirm %></a> 
+		&nbsp;&nbsp;&nbsp;&nbsp;
+		&nbsp;&nbsp;&nbsp;&nbsp;
+		<a id="reset" href="javascript:;"><%- butCancel %></a>  
+	</div>
+	</script>
+	</form>
+</div>

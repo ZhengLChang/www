@@ -1,0 +1,193 @@
+<script type="text/javascript">
+$(document).ready(function(){
+	TempUtil.render('form1Temp', 'form1', phoneTrustedCertificatesHtml.form1);
+
+    var showText = phoneTrustedCertificatesHtml.showText,
+        origialJSON;
+
+	function createCaList(data)
+	{
+		var lists = data, result = [];
+		for(var i = 0; i < lists.length; i++)
+		{
+			result.push(String.format('<tr><td class="list4-td-frist-border" style="width: 8%;">{0}</td>\
+					<td class="list4-td-border" style="width: 25%;">{1}</td>\
+    			                <td class="list4-td-border" style="width: 25%;">{2}</td>\
+    			                <td class="list4-td-border" style="width: 27%;">{3}</th>\
+				                <td class="list4-td-border" style="width: 15%;"><input type="checkbox" id="certificate{4}"/></td></tr>', lists[i][0], lists[i][1], lists[i][2], lists[i][3], i));
+		}
+		return result.join(''); 
+	}
+	function renderData(data){
+		$('#ca_list').html(createCaList(data));
+	}
+
+	function initPage(){
+		$('#importCertificate').linkbutton();  
+		$('#deleteCertificate').linkbutton(); 
+	}
+
+	Page.postJSON({
+		url: MenuItem.sServer.get,
+		success: function(data){       
+			origialJSON = data;
+			renderData(data);
+
+			initPage();
+
+			Page.$iframe.show();
+		}
+	});
+
+	$('#importCertificate').click(function(){
+		var $form = $('#uploadCertificate'),
+			jsonData = null,
+			$importFile = $('#importFile'),
+			updateFileName = $importFile.val();
+
+		if(updateFileName === ''){
+			AlertUtil.fileIsEmpty();
+			return false;
+		}
+		if(/[\\\/]/.test(updateFileName)) {
+         	var matchs = updateFileName.match(/(.*)?[\\\/](.*)/);
+         	updateFileName = matchs[2];
+        }
+
+		AlertUtil.confirm(uploadCommon.uploadFilePrompt + '</br>' + updateFileName, function(r){
+			if(r){
+				$form.ajaxSubmit({
+		            url: MenuItem.sServer.importCertificates,
+		            type: 'POST',
+		            dataType: 'text',
+		            beforeSubmit: function() {          
+		                SysUtil.showProgress({
+		                	msg: uploadCommon.uploadMsg,
+		                	text: uploadCommon.uploadText,
+		                	checkStatus: function(){
+		                		return jsonData != null;
+		                	},
+		                	callback: function(){
+		                		$.messager.progress('close');
+		                		if(jsonData.return_code == 0){
+		                		    var url = location.href, index = url.indexOf('?');
+
+		                			AlertUtil.alertMsg(uploadCommon.uploadSuccess);
+
+		                			index = url.indexOf('?');
+		                            if(index > -1){
+			                            url = url.substring(0, index);
+		                            }
+		                            index= url.indexOf('#');
+		                            if(index > -1){
+			                            url = url.substring(0, index);
+		                            }
+
+		                            window.location.assign(url);	
+		                		} else {
+		                			AlertUtil.alertMsg(uploadCommon.uploadFail);
+		                		}
+		                	}
+		                });
+
+		                return true;
+		            },
+		            success: function(data, statusText) {
+		            	try{
+		            		jsonData = JSON.parse(data);
+		            	}catch(ex){
+		            		jsonData = {return_code: -1};
+		            	}
+		            },
+		            error: function(responseText, statusText) {
+		            	jsonData = {return_code: -1};
+		            }
+		        });
+			}
+		});
+	});
+
+
+	$('#deleteCertificate').click(function(){
+		var $items = $('input[id^=certificate]:checked');
+
+		if($items.length == 0){
+    		AlertUtil.alertMsg(showText.selectEmpty);
+    		return false;
+    	}
+    	
+    	AlertUtil.confirm(showText.delConfirm, function(r){
+			    if(r){
+		        Page.postJSON({
+			        url: MenuItem.sServer.deleteCertificates,
+			        data: 'name=All',
+			        success: function(data){
+			            var url = location.href, index = url.indexOf('?');
+
+    			        AlertUtil.alertMsg(alertMsg.saveSuccess);
+
+    			        index = url.indexOf('?');
+                        if(index > -1){
+                            url = url.substring(0, index);
+                        }
+                        index= url.indexOf('#');
+                        if(index > -1){
+                            url = url.substring(0, index);
+                        }
+
+                        window.location.assign(url);	
+			        }
+		        });
+		     }  
+        });
+	});
+
+});
+</script>
+
+<div class="detail_box" id="form1">
+	<script type="text/template" id="form1Temp">
+	<table class="list2">
+		<tbody>
+		<table class="list4">
+    	                <tr style="font-weight: bold; background-color: #fff;">
+			 	<td style="width: 8%;"><%- index %></td>
+  		                <td style="width: 25%;"><%- issued_to %></td>
+				<td style="width: 25%;"><%- issued_by %></td>
+				<td style="width: 27%;"><%- expiration %></td>
+				<td style="width: 15%;" ><%- delete_select %></td>
+    	                </tr>
+		</table>
+		<table id="ca_list" class="list4"></table>
+            	<tr>&nbsp;</tr>
+            	<tr>&nbsp;</tr>
+            	<table class="list2">
+      			<tr class="head2">
+				<td colspan="3"><%- import_server_certificates %></td>
+    			</tr>
+			<tr>
+				<td class="list2td1"></td>
+				<td class="list2td3"><%- server_certificationfile %></td>
+				<td>
+	    				<form id="uploadCertificate" enctype="multipart/form-data" method="post">
+					<input type="file" id="importFile" name="importFile"/>
+					</form>
+ 				</td>
+    			</tr>
+		   </table>
+		</tbody>
+	</table>
+	<div class="page-button">
+		<tr>
+			<td class="list2td1"></td>
+			<td class="list2td3"></td>
+			<td>
+			<a id="importCertificate" href="javascript:;"><%- btn_upload %></a> 
+			&nbsp;&nbsp;&nbsp;&nbsp;
+			&nbsp;&nbsp;&nbsp;&nbsp;	
+			<a id="deleteCertificate" href="javascript:;"><%- btn_delete %></a>  
+			</td>
+    		</tr>
+	</div>
+	</script>
+</div>

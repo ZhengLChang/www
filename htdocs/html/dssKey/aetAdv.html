@@ -1,0 +1,244 @@
+<script type="text/javascript">
+$(document).ready(function(){
+	TempUtil.render('form1Temp', 'form1', aetAdvHtml.form1);
+
+	var origialJSON,
+		origialStr,
+		initFlag = 1,
+		$form = $('#form1');
+
+	function renderData(data){
+		//ipv4
+		Page.setRadioFieldValue('internetPort', data.internetPort);
+
+		Page.setFormFieldValue('iPAddress', data.iPAddress);
+		Page.setFormFieldValue('subnetMask', data.subnetMask);
+		Page.setFormFieldValue('defaultGateway', data.defaultGateway);
+
+		Page.setRadioFieldValue('StaticDNSEnable', data.StaticDNSEnable);
+		Page.setFormFieldValue('primaryDNS', data.primaryDNS);
+		Page.setFormFieldValue('secondaryDNS', data.secondaryDNS);
+	}
+
+	function initPage(){
+		//ipv4
+		$('#iPAddress').validatebox(commonRules.ipRequired);
+		$('#subnetMask').validatebox(commonRules.ipRequired);
+		$('#defaultGateway').validatebox(commonRules.ipRequired);
+		$('#primaryDNS').validatebox(commonRules.ipFormat);
+		$('#secondaryDNS').validatebox(commonRules.ipFormat);
+
+
+		initFlag = 1;
+		$('input[name="internetPort"]').change();
+		initFlag = 0;
+
+		if(Page.username === UserName.user)
+		{
+			//ipv4
+			$('#labelDHCP').myEnable(false);
+			$('#labelStaticIPAddress').myEnable(false);
+			$('#iPAddress').myEnable(false);
+			$('#subnetMask').myEnable(false);
+			$('#defaultGateway').myEnable(false);
+			$('#StaticDNSEnable0').myEnable(false);
+			$('#StaticDNSEnable1').myEnable(false);
+			$('#primaryDNS').myEnable(false);
+			$('#secondaryDNS').myEnable(false);
+
+		}
+
+		$('#save').linkbutton();  
+		$('#reset').linkbutton(); 
+	}
+
+	Page.postJSON({
+		url: MenuItem.dAetAdv.get,
+		success: function(data){
+			origialJSON = data;
+			renderData(data);
+			initPage();
+
+			Page.$iframe.show();
+			origialStr = $form.formSerialize();
+			Page.initTips();
+		}
+	});
+
+	var $group1,
+		$group2;
+	$('input[name="internetPort"]').change(function(){
+		var selected = $("input[name='internetPort']:checked").val();
+		if(!$group1){
+			$group1 = $('#form1 .group1');
+		}
+		if(!$group2){
+			$group2 = $('#form1 .group2');
+		}
+
+		if(selected === WanType.DHCP ||
+			selected === WanType.innerNet){
+			if(!initFlag)
+			{
+				window.form1.StaticDNSEnable.value = 0;
+			}
+			$group1.myEnable(false);
+			$group2.myEnable(true);
+			$("input[name='StaticDNSEnable']").myEnable(true);
+			$('input[name="StaticDNSEnable"]').change();
+		} else if(selected === WanType.StaticIp){
+			if(!initFlag)
+			{
+				window.form1.StaticDNSEnable.value = 1;
+			}
+			$group1.myEnable(true);
+			$group2.myEnable(true);
+			$("input[name='StaticDNSEnable']").myEnable(false);
+			$('#form1 .group3').myEnable(true);
+		} 
+//		$('input[name="StaticDNSEnable"]').change();
+	});
+
+    var $group3;
+    $('input[name="StaticDNSEnable"]').change(function(){
+		var selected = $("input[name='StaticDNSEnable']:checked").val();
+		if(!$group3){
+			$group3 = $('#form1 .group3');
+		}
+
+		if(selected == 0){
+			$group3.myEnable(false);
+		} else if(selected == 1){
+			$group3.myEnable(true);
+		} 
+	});
+
+
+	$('#save').click(function(){
+		if(origialStr == $form.formSerialize()){
+			AlertUtil.saveNoChange();
+			return ;
+		}
+		var json = JSON.parmsToJSON($form);
+
+		var valid, validGroups = [];
+		if(json.internetPort === WanType.StaticIp){
+			validGroups.push('iPAddress');
+			validGroups.push('subnetMask');
+			validGroups.push('defaultGateway');
+			validGroups.push('primaryDNS');
+			validGroups.push('secondaryDNS');
+
+			valid = ValidHelper.groupsValid(validGroups);
+
+			if(!valid){
+				AlertUtil.invalidVal();
+				return false;
+			}
+		}
+		Page.postJSON({
+			url: MenuItem.dAetAdv.set,
+			data: JSON.serializeToParms(json),
+			success: function(data){
+				AlertUtil.saveSuccess();
+				origialJSON = json;
+				origialStr = $form.formSerialize();
+			}
+		});
+	});
+
+	$('#reset').click(function(){
+		if(origialJSON){
+			renderData(origialJSON);
+		//	$('input[name="internetPort"]').change();
+		}
+	});
+});
+</script>
+<div class="detail_box">
+	<form id="form1">
+	<script type="text/template" id="form1Temp">
+	<table class="list2">
+		<tbody>
+			<tr>
+				<td colspan="4" class="head2"><%- networkSetting %></td>
+			</tr>
+			<tr>
+				<td class="list2td1"></td>
+				<td class="list2td2" colspan="4">
+					<input type="radio" id="innerNet" name="internetPort" value="innerNet" checked="checked"/>
+					&nbsp;<label for="innerNet"><%- innerNet %></label>
+					<span class="my-tooltips" title="<%- tips.innerNet %>">&nbsp;</span>
+				</td>
+			</tr>
+			<tr>
+				<td class="list2td1"></td>
+				<td class="list2td2" colspan="4">
+					<input type="radio" id="labelDHCP" name="internetPort" value="DHCP"/>
+					&nbsp;<label for="labelDHCP"><%- dhcp %></label>
+					<span class="my-tooltips" title="<%- tips.dhcp %>">&nbsp;</span>
+				</td>
+			</tr>
+			<tr>
+				<td class="list2td1"></td>
+				<td class="list2td2" colspan="4">
+					<input type="radio" id="labelStaticIPAddress" name="internetPort" value="staticIPAddress"/>
+					&nbsp;<label for="labelStaticIPAddress"><%- staticIp %></label>
+					<span class="my-tooltips" title="<%- tips.staticIp %>">&nbsp;</span> 
+				</td>
+			</tr>
+			<tr>
+				<td class="list2td1"></td>
+				<td class="list2td2"></td>
+				<td class="list2td3"><span class="span-required">*</span><%- ip %></td>
+				<td><input type="text" class="normal group1" id="iPAddress" name="iPAddress" maxlength="15"/></td>
+			</tr>
+			<tr>
+				<td class="list2td1"></td>
+				<td class="list2td2"></td>
+				<td class="list2td3"><span class="span-required">*</span><%- subnetMask %></td>
+				<td><input type="text" class="normal group1" id="subnetMask" name="subnetMask" maxlength="15"/></td>
+			</tr>
+			<tr>
+				<td class="list2td1"></td>
+				<td class="list2td2"></td>
+				<td class="list2td3"><span class="span-required">*</span><%- defaultGateway %></td>
+				<td><input type="text" class="normal group1" id="defaultGateway" name="defaultGateway" maxlength="15"/></td>
+			</tr>
+
+			<tr>
+				<td class="list2td1"></td>
+				<td class="list2td3" colspan="2"><%- StaticDNSEnable %></td>
+				<td>
+					<input type="radio" id="StaticDNSEnable0" name="StaticDNSEnable" value="0" class="radio group2"/>
+					<label class="pointer" for="StaticDNSEnable0"><%- off %></label>
+					<input type="radio" id="StaticDNSEnable1" name="StaticDNSEnable" value="1" checked="checked" class="radio group2"/>
+					<label class="pointer" for="StaticDNSEnable1"><%- on %></label>
+					<span class="my-tooltips" title="<%- tips.StaticDNSEnable %>">&nbsp;</span>
+				</td>
+			</tr>
+
+			<tr>
+				<td class="list2td1"></td>
+				<td class="list2td2"></td>
+				<td class="list2td3"><%- primaryDNS %></td>
+				<td><input type="text" class="normal group3" id="primaryDNS" name="primaryDNS" maxlength="15"/></td>
+			</tr>
+			<tr>
+				<td class="list2td1"></td>
+				<td class="list2td2"></td>
+				<td class="list2td3"><%- secondaryDNS %></td>
+				<td><input type="text" class="normal group3" id="secondaryDNS" name="secondaryDNS" maxlength="15"/></td>
+			</tr>
+		</tbody>
+	</table>
+
+	<div class="page-button">
+		<a id="save" href="javascript:;"><%- butConfirm %></a> 
+		&nbsp;&nbsp;&nbsp;&nbsp;
+		&nbsp;&nbsp;&nbsp;&nbsp;
+		<a id="reset" href="javascript:;"><%- butCancel %></a>  
+	</div>
+	</script>
+	</form>
+</div>

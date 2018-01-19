@@ -1,0 +1,81 @@
+﻿<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd">
+<html>
+	<head>
+		<title>IP Phone</title>
+		<meta http-equiv="Content-Type" content="text/html; charset=UTF-8"/>
+		<meta http-equiv="Pragma" content="no-cache"/>
+		<meta http-equiv="Cache-Control" content="no-cache"/>
+		<meta http-equiv="Expires" content="0"/>
+		<meta http-equiv="X-UA-Compatible" content="IE=edge" />
+		<style>
+			body,form, div, input {
+				margin: 0;
+				padding: 0;
+			}
+		</style>
+		<script type="text/javascript" src="/js/common/json2.min.js"></script>
+		<script type="text/javascript" src="/js/jquery/jquery-1.7.2.min.js"></script>
+		<script type="text/javascript" src="/js/jquery/jquery.atcom.js"></script>
+		<script type="text/javascript">
+			$(document).ready(function(){
+				window.doCancelUpload = function(){
+					$('#uploadScreensaver')[0].reset();
+				};
+
+				if(window.parent.Page.currentLang === 2 || window.parent.Page.currentLang === 6){
+					document.body.style.direction = "rtl";
+				}
+
+				window.doScreensaverUpload = function(callback){
+					var $form = $('#uploadScreensaver'),
+						jsonData = null,
+						$selectScreensaver = $('#selectScreensaver'),
+						updateFileName = $selectScreensaver.val();
+					if(updateFileName === ''){
+						window.parent.AlertUtil.fileIsEmpty();
+			            return false;
+					}
+					if(/[\\\/]/.test(updateFileName)) {
+			        	var matchs = updateFileName.match(/(.*)?[\\\/](.*)/);
+			        	updateFileName = matchs[2];
+			        }
+					if(!(/(png|jpg)$/i.test(updateFileName) && /^[\u0020-\u007e]+$/.test(updateFileName))){
+						window.parent.AlertUtil.screensaverFormatError();
+						return false;
+					}
+
+					$form.ajaxSubmit({
+			            url: '/cgi-bin/web_cgi_main.cgi?user_upload_screensaver',
+			            type: 'POST',
+			            dataType: 'text',
+			            beforeSubmit: function() {
+			            	window.parent.IframeUtil.doProgress(callback);
+			                return true;
+			            },
+			            success: function(data, statusText) {
+			            	try{		            
+			            		jsonData = JSON.parse(data);
+			            	}catch(ex){		           
+			            		jsonData = {return_code: -1};
+			            	}                     
+			            },
+			            error: function(responseText, statusText) {           
+			            	jsonData = {return_code: -1};
+			            },
+			            complete: function(){
+			            	jsonData.filename = updateFileName;
+			            	window.parent.IframeUtil.jsonData = jsonData;
+			            }
+			        });
+				}
+			});
+		</script>
+	</head>
+	<body>
+		<form id="uploadScreensaver" enctype="multipart/form-data" method="post">
+			<div>
+				<input type="file" id="selectScreensaver" name="uploadScreensaver" style="outline: none;"/>
+			</div>
+		</form>
+	</body>
+</html>

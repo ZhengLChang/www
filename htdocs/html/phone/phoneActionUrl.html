@@ -1,0 +1,148 @@
+<script type="text/javascript">
+$(document).ready(function(){
+	TempUtil.render('form1Temp', 'form1', phoneActionUrlHtml.form1);
+	
+	var origialJSON,
+		origialStr,
+		$form = $('#form1');
+	
+	function renderData(data){
+	Page.setFormFieldValue('setupCompletedUrl', data.setupCompletedUrl);
+	Page.setFormFieldValue('registeredUrl', data.registeredUrl);
+	Page.setFormFieldValue('unregisteredUrl', data.unregisteredUrl);
+	Page.setFormFieldValue('registerFailedUrl', data.registerFailedUrl);
+	Page.setFormFieldValue('offHookUrl', data.offHookUrl);
+	Page.setFormFieldValue('onHookUrl', data.onHookUrl);
+	Page.setFormFieldValue('incomingCallUrl', data.incomingCallUrl);
+	Page.setFormFieldValue('outgoingCallUrl', data.outgoingCallUrl);
+	Page.setFormFieldValue('establishedUrl', data.establishedUrl);
+	Page.setFormFieldValue('terminatedUrl', data.terminatedUrl);
+	Page.setFormFieldValue('openDNDUrl', data.openDNDUrl);
+	Page.setFormFieldValue('closeDNDUrl', data.closeDNDUrl);
+	Page.setFormFieldValue('openAlwaysForwardUrl', data.openAlwaysForwardUrl);
+	Page.setFormFieldValue('closeAlwaysForwardUrl', data.closeAlwaysForwardUrl);
+	Page.setFormFieldValue('openBusyForwardUrl', data.openBusyForwardUrl);
+	Page.setFormFieldValue('closeBusyForwardUrl', data.closeBusyForwardUrl);
+	Page.setFormFieldValue('openNoAnswerForwardUrl', data.openNoAnswerForwardUrl);
+	Page.setFormFieldValue('closeNoAnswerForwardUrl', data.closeNoAnswerForwardUrl);
+	Page.setFormFieldValue('transferCallUrl', data.transferCallUrl);
+	Page.setFormFieldValue('blindTransferUrl', data.blindTransferUrl);
+	Page.setFormFieldValue('attendedTransferUrl', data.attendedTransferUrl);
+	Page.setFormFieldValue('holdUrl', data.holdUrl);
+	Page.setFormFieldValue('unHoldUrl', data.unHoldUrl);
+	Page.setFormFieldValue('muteUrl', data.muteUrl);
+	Page.setFormFieldValue('unMuteUrl', data.unMuteUrl);    
+	Page.setFormFieldValue('missedCallUrl', data.missedCallUrl);
+	Page.setFormFieldValue('IPChangedUrl', data.IPChangedUrl);
+	Page.setFormFieldValue('idleToBusyUrl', data.idleToBusyUrl);
+	Page.setFormFieldValue('busyToIdleUrl', data.busyToIdleUrl);
+	Page.setFormFieldValue('rejectIncomingCallUrl', data.rejectIncomingCallUrl);
+	Page.setFormFieldValue('answerNewIncomingCallUrl', data.answerNewIncomingCallUrl);
+	Page.setFormFieldValue('transferFailedUrl', data.transferFailedUrl);
+	Page.setFormFieldValue('transferFinishedUrl', data.transferFinishedUrl);
+	Page.setFormFieldValue('forwardIncomingCallUrl', data.forwardIncomingCallUrl);
+	Page.setFormFieldValue('autopFinishUrl', data.autopFinishUrl);
+	Page.setFormFieldValue('openCallWaitingUrl', data.openCallWaitingUrl);
+	Page.setFormFieldValue('closeCallWaitingUrl', data.closeCallWaitingUrl);
+	Page.setFormFieldValue('headsetUrl', data.headsetUrl);
+	Page.setFormFieldValue('handfreeUrl', data.handfreeUrl);
+	Page.setFormFieldValue('cancelCallOutUrl', data.cancelCallOutUrl);
+	Page.setFormFieldValue('remoteBusyUrl', data.remoteBusyUrl);
+	Page.setFormFieldValue('callRemoteCanceledUrl', data.callRemoteCanceledUrl);
+	}
+	
+	function initPage(){
+		$('#save').linkbutton();  
+		$('#reset').linkbutton(); 
+	}
+	
+	Page.postJSON({
+		url: MenuItem.pActionUrl.get,
+		success: function(data){
+			origialJSON = data;
+			renderData(data);
+			initPage();
+			
+			Page.$iframe.show();
+			origialStr = $form.formSerialize();
+			Page.initTips();
+		}
+	});
+	
+	$('#save').click(function(){
+		if(ValidHelper.invalid($form)){
+			AlertUtil.invalidVal();
+			return false;
+		}
+		if(origialStr == $form.formSerialize()){
+			AlertUtil.saveNoChange();
+			return false;
+		}
+		
+		var json = JSON.parmsToJSON($form);
+		
+		Page.postJSON({
+			url: MenuItem.pActionUrl.set,
+			data: JSON.serializeToParms(json),
+			success: function(data){
+				AlertUtil.saveSuccess(function(){
+					if(origialJSON.loginTimeout != json.loginTimeout){
+						Page.loginTimeout = parseInt(json.loginTimeout, 10) || 5;
+						clearTimeout(Page.intervalId);
+						Page.setPageTimeoutLogout(Page.loginTimeout);
+					} 
+					origialJSON = json;
+					origialStr = $form.formSerialize();	
+				});
+			}
+		});
+	});
+	
+	var $inputNums = null;
+	$('#reset').click(function(){
+		if(origialJSON){
+			renderData(origialJSON);
+			$inputNums = ValidHelper.numHelper($inputNums);
+		}
+	});
+	
+	$('#form1').delegate('td.title', 'click', function(){
+		var $this = $(this),
+			className = $this.prop('class');
+		
+		if(className.indexOf('add-hide') > -1){
+			$this.removeClass('add-hide').addClass('reduce-show');
+			$this.parent().next().show();
+		} else {
+			$this.removeClass('reduce-show').addClass('add-hide');
+			$this.parent().next().hide();
+		}
+	});
+});
+</script>
+<div class="detail_box">
+	<form id="form1">
+	<script type="text/template" id="form1Temp">
+	<table class="list2">
+		<tbody>
+		<% _.each(actionUrlItem, function(item, i){ %>
+		<tr>
+			<td class="list2td1"></td>
+			<td class="list2td3" for="<%- item %>"><%- actionUrlNameList[i]  %></td>
+			<td>
+				<input type="text" class="big" id="<%- item %>" name="<%- item %>" maxlength="511">
+			</td>
+			<% }) %>
+		</tr>
+		</tbody>
+	</table>
+
+	<div class="page-button">
+		<a id="save" href="javascript:;"><%- butConfirm %></a> 
+		&nbsp;&nbsp;&nbsp;&nbsp;
+		&nbsp;&nbsp;&nbsp;&nbsp;	
+		<a id="reset" href="javascript:;"><%- butCancel %></a>  
+	</div>
+	</script>
+	</form>
+</div>

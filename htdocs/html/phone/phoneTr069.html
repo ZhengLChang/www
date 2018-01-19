@@ -1,0 +1,167 @@
+<script type="text/javascript">
+$(document).ready(function(){
+	TempUtil.render('form1Temp', 'form1', phoneTr069Html.form1);
+	var origialJSON,
+		origialStr,
+		$form = $('#form1');
+
+	function renderData(data){
+		Page.setFormFieldValue('enable', data.enable);
+		Page.setFormFieldValue('serveraddress', data.serveraddress);
+		Page.setFormFieldValue('serverport', data.serverport);
+		Page.setFormFieldValue('username', data.username);
+		Page.setFormFieldValue('password', data.password);
+		Page.setFormFieldValue('periodic_inform_enable', data.periodic_inform_enable);
+		Page.setFormFieldValue('periodic_inform_interval', data.periodic_inform_interval);
+		Page.setFormFieldValue('connection_request_username', data.connection_request_username);
+		Page.setFormFieldValue('connection_request_password', data.connection_request_password);
+	}
+
+	function initPage(){
+		$('#periodic_inform_interval').numberbox({
+			min: 5,
+			max: 65535
+		});
+
+		$('#save').linkbutton();  
+		$('#reset').linkbutton(); 
+	}
+
+	Page.postJSON({
+		url: MenuItem.pPhoneTr069.get,
+		success: function(data){
+			origialJSON = data;
+
+			renderData(data);
+			initPage();
+
+			Page.$iframe.show();
+			origialStr = $form.formSerialize();
+			Page.initTips();
+		}
+	});
+
+	$('#save').click(function(){
+		if(ValidHelper.invalid($form)){
+			AlertUtil.invalidVal();
+			return false;
+		}
+
+		if(origialStr == $form.formSerialize()){
+			AlertUtil.saveNoChange();
+			return false;
+		}
+
+		var json = JSON.parmsToJSON($form);
+		Page.postJSON({
+			url: MenuItem.pPhoneTr069.set,
+			data: JSON.serializeToParms(json),
+			success: function(data){
+				AlertUtil.saveSuccess();
+				origialJSON = json;
+				origialStr = $form.formSerialize();
+			}
+		});
+	});
+
+	var $inputNums = null;
+	$('#reset').click(function(){
+		if(origialJSON){
+			renderData(origialJSON);
+			$inputNums = ValidHelper.numHelper($inputNums);
+		}
+	});
+});
+</script>
+<div class="detail_box">
+	<form id="form1">
+	<script type="text/template" id="form1Temp">
+	<table class="list2">
+		<tbody>				
+			<tr class="head2">
+				<td colspan="3">
+					<%- tr069 %>
+				</td>
+			</tr>
+			<tr>
+				<td class="list2td1"></td>
+				<td class="list2td3"><%- tr069_enable %></td>
+				<td>
+					<select id="enable" name="enable" class="normal">
+						<option value="0"><%- disable %></option>
+						<option value="1"><%- enable %></option>
+					</select>
+					<span class="my-tooltips" title="<%- tips.tr069_enable %>">&nbsp;</span>
+				</td>
+			</tr>
+			<tr>
+				<td class="list2td1"></td>
+				<td class="list2td3"><%- serveraddress %></td>
+				<td>
+					<input type="text" class="normal" id="serveraddress" name="serveraddress" maxlength="511"/>
+					<span class="my-tooltips" title="<%- tips.ACS_URL %>">&nbsp;</span>
+				</td>
+			</tr>
+			<tr>
+				<td class="list2td1"></td>
+				<td class="list2td3"><%- username %></td>
+				<td>
+					<input type="text" class="normal" id="username" name="username" maxlength="127"/>
+					<span class="my-tooltips" title="<%- tips.ACS_username %>">&nbsp;</span>
+				</td>
+			</tr>
+			<tr>
+				<td class="list2td1"></td>
+				<td class="list2td3"><%- password %></td>
+				<td>
+					<input type="password" class="normal" id="password" name="password" maxlength="63"/>
+					<span class="my-tooltips" title="<%- tips.ACS_password %>">&nbsp;</span>
+				</td>
+			</tr>
+			<tr>
+				<td class="list2td1"></td>
+				<td class="list2td3"><%- periodic_inform_enable %></td>
+				<td>
+					<select id="periodic_inform_enable" name="periodic_inform_enable" class="normal">
+						<option value="0"><%- disable %></option>
+						<option value="1"><%- enable %></option>
+					</select>
+					<span class="my-tooltips" title="<%- tips.periodic_inform_enable %>">&nbsp;</span>
+				</td>
+			</tr>
+			<tr>
+				<td class="list2td1"></td>
+				<td class="list2td3"><%- periodic_inform_interval %></td>
+				<td>
+					<input type="text" class="normal" id="periodic_inform_interval" name="periodic_inform_interval" maxlength="5"/>
+					<span class="my-tooltips" title="<%- tips.periodic_inform_interval %>">&nbsp;</span>
+				</td>
+			</tr>
+			<tr>
+				<td class="list2td1"></td>
+				<td class="list2td3"><%- connection_request_username %></td>
+				<td>
+					<input type="text" class="normal" id="connection_request_username" name="connection_request_username" maxlength="127"/>
+					<span class="my-tooltips" title="<%- tips.connecting_request_username %>">&nbsp;</span>
+				</td>
+			</tr>			
+			<tr>
+				<td class="list2td1"></td>
+				<td class="list2td3"><%- connection_request_password %></td>
+				<td>
+					<input type="password" class="normal" id="connection_request_password" name="connection_request_password" maxlength="63"/>
+					<span class="my-tooltips" title="<%- tips.connecting_request_password %>">&nbsp;</span>
+				</td>
+			</tr>
+		</tbody>
+
+	</table>
+	<div class="page-button">
+		<a id="save" href="javascript:;"><%- butConfirm %></a> 
+		&nbsp;&nbsp;&nbsp;&nbsp;
+		&nbsp;&nbsp;&nbsp;&nbsp;	
+		<a id="reset" href="javascript:;"><%- butCancel %></a>  
+	</div>
+	</script>
+	</form>
+</div>

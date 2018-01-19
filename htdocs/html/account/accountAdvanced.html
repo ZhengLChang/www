@@ -1,0 +1,405 @@
+<script type="text/javascript">
+$(document).ready(function(){
+	accountAdvancedHtml.form1.model = Page.model;
+	TempUtil.render('form1Temp', 'form1', accountAdvancedHtml.form1);
+	
+	var origialJSON,
+		origialStr,
+		$form = $('#form1');
+	
+	function renderData(data){
+		Page.setFormFieldValue('accountNumber', Page.currentAccount);
+		
+		Page.setFormFieldValue('udpKeepAliveMsg', data.udpKeepAliveMsg);		
+		Page.setFormFieldValue('udpKeepAliveInterval', data.udpKeepAliveInterval);
+		
+		Page.setFormFieldValue('loginExpires', data.loginExpires);
+		Page.setFormFieldValue('localSipPort', data.localSipPort);
+		Page.setFormFieldValue('subscribePeriod', data.subscribePeriod);
+		
+		Page.setFormFieldValue('dtmfType', data.dtmfType);
+		Page.setFormFieldValue('dtmfPayload', data.dtmfPayload);
+		Page.setFormFieldValue('reliableRetransmission', data.reliableRetransmission);
+		
+		Page.setFormFieldValue('subscribeForMwi', data.subscribeForMwi);
+		Page.setFormFieldValue('mwiSubscribePeriod', data.mwiSubscribePeriod);
+		
+		Page.setFormFieldValue('useSessionTimer', data.useSessionTimer);
+		Page.setFormFieldValue('sessionTimer', data.sessionTimer);
+		Page.setFormFieldValue('refresher', data.refresher);
+		
+		Page.setFormFieldValue('useUserPhone', data.useUserPhone);
+		Page.setFormFieldValue('voiceEncryption', data.voiceEncryption);
+		Page.setFormFieldValue('ptime', data.ptime);
+		
+		Page.setFormFieldValue('blfListUri', data.blfListUri);
+		Page.setFormFieldValue('derectedCallPickupCode', data.derectedCallPickupCode);
+		Page.setFormFieldValue('groupCallPickupCode', data.groupCallPickupCode);
+		
+		Page.setFormFieldValue('sipRegRetryTimer', data.sipRegRetryTimer);
+		Page.setFormFieldValue('earlyMedia', data.earlyMedia);
+		Page.setFormFieldValue('sipServerType', data.sipServerType);
+		Page.setFormFieldValue('intercomCode', data.intercomCode);
+		Page.setFormFieldValue('conferenceType', data.conferenceType);
+		Page.setFormFieldValue('conferenceCode', data.conferenceCode);
+
+	}
+	
+	function initPage(){
+		$('#localSipPort').numberbox(commonRules.portRequired);
+		
+		$('#mwiSubscribePeriod').numberbox({
+			min: 0,
+			max: 84600
+		});
+		$('#sipRegRetryTimer').numberbox({
+			min: 0,
+			max: 1800
+		});
+		
+		$('#udpKeepAliveInterval').numberbox();
+		$('#loginExpires').numberbox();
+		$('#subscribePeriod').numberbox();
+		$('#sessionTimer').numberbox();
+		
+		$('#dtmfPayload').numberbox(commonRules.numRequired);
+		$('#ptime').numberbox(commonRules.num);
+		
+		$('#save').linkbutton();  
+		$('#reset').linkbutton(); 
+	}
+	
+	Page.postJSON({
+		url: MenuItem.aAdvanced.get,
+		data: "accountNum=" + Page.currentAccount,
+		success: function(data){
+			origialJSON = data;
+			renderData(data);
+			initPage();
+			
+			Page.$iframe.show();
+			origialStr = $form.formSerialize();
+			Page.initTips();
+		}
+	}); 
+	
+	$('#save').click(function(){
+		if(ValidHelper.invalid($form)){
+			AlertUtil.invalidVal();
+			return false;
+		}
+		if(origialStr == $form.formSerialize()){
+			AlertUtil.saveNoChange();
+			return ;
+		}
+		var json = JSON.parmsToJSON($form);	
+		
+		Page.postJSON({
+			url: MenuItem.aAdvanced.set,
+			data: JSON.serializeToParms(json),
+			success: function(data){
+				AlertUtil.saveSuccess();
+				origialJSON = json;
+				origialStr = $form.formSerialize();
+			}
+		});
+	});
+	
+	var $inputNums = null;
+	$('#reset').click(function(){
+		if(origialJSON){
+			renderData(origialJSON);
+			
+			$inputNums = ValidHelper.numHelper($inputNums);
+		}
+	});
+	
+	$('#accountNumber').change(function(){
+		var accountNum = this.value;
+		Page.currentAccount = accountNum;
+		Page.postJSON({
+			url: MenuItem.aAdvanced.get,
+			data: "accountNum="+accountNum,
+			success: function(data){
+				origialJSON = data;
+				renderData(data);
+				
+				$inputNums = ValidHelper.numHelper($inputNums);
+				origialStr = $form.formSerialize();
+			}
+		}); 
+	});
+});
+</script>
+<div class="detail_box">
+	<form id="form1">
+	<script type="text/template" id="form1Temp">
+	<table class="list2">
+		<tbody>
+			<tr class="head2">
+				<td colspan="2"><%- accountNumber %></td>
+				<td style="text-indent: 0;">
+					<select id="accountNumber" name="accountNumber" class="normal">
+						<% if(Page.accountNum >= 1) { %>
+							<option value="1"><%- accountNumberOpt1 %></option>
+						<% } %>
+						<% if(Page.accountNum >= 2) { %>
+							<option value="2"><%- accountNumberOpt2 %></option>
+						<% } %>
+						<% if(Page.accountNum >= 3) { %>
+							<option value="3"><%- accountNumberOpt3 %></option>
+						<% } %>
+						<% if(Page.accountNum >= 4) { %>
+							<option value="4"><%- accountNumberOpt4 %></option>
+						<% } %>
+						<% if(Page.accountNum >= 5) { %>
+							<option	value="5"><%- accountNumberOpt5 %></option>
+						<% } %>
+						<% if(Page.accountNum >= 6) { %>
+							<option value="6"><%- accountNumberOpt6 %></option>
+						<% } %>
+					</select>
+				</td>
+			</tr>
+			<tr>
+				<td class="list2td1"></td>
+				<td class="list2td3"><%- udpKeepAliveMsg %></td>
+				<td>
+					<select id="udpKeepAliveMsg" name="udpKeepAliveMsg" class="normal">
+						<option value="1"><%- enable %></option>
+						<option value="0"><%- disable %></option>
+					</select>
+					<span class="my-tooltips" title="<%- tips.udpKeepAliveMsg %>">&nbsp;</span>
+				</td>
+			</tr>
+			<tr>
+				<td></td>
+				<td><%- udpKeepAliveInterval %></td>
+				<td>
+					<input type="text" class="normal" id="udpKeepAliveInterval" name="udpKeepAliveInterval"/>
+				</td>
+			</tr>
+			<tr>
+				<td></td>
+				<td><%- loginExpires %></td>
+				<td>
+					<input type="text" class="normal" id="loginExpires" name="loginExpires"/>
+					<span class="my-tooltips" title="<%- tips.loginExpires %>">&nbsp;</span>
+				</td>
+			</tr>
+			<tr>
+				<td></td>
+				<td><span class="span-required">*</span><%- localSipPort %></td>
+				<td>
+					<input type="text" class="normal" id="localSipPort" name="localSipPort" />
+					<span class="my-tooltips" title="<%- tips.localSipPort %>">&nbsp;</span>
+				</td>
+			</tr>
+			<tr>
+				<td></td>
+				<td><%- subscribePeriod %></td>
+				<td>
+					<input type="text" class="normal" id="subscribePeriod" name="subscribePeriod" />
+					<span class="my-tooltips" title="<%- tips.subscribePeriod %>">&nbsp;</span>
+				</td>
+			</tr>
+			<tr>
+				<td></td>
+				<td><%- dtmfType %></td>
+				<td>
+					<select id="dtmfType" name="dtmfType" class="normal">
+						<option value="1"><%- dtmfTypeOpt1 %></option>
+						<option value="0"><%- dtmfTypeOpt0 %></option>
+						<option value="2"><%- dtmfTypeOpt2 %></option>
+					</select>
+					<span class="my-tooltips" title="<%- tips.dtmfType %>">&nbsp;</span>
+				</td>
+			</tr>
+			<tr>
+				<td></td>
+				<td><span class="span-required">*</span><%- dtmfPayload %></td>
+				<td>
+					<input type="text" class="normal" id="dtmfPayload" name="dtmfPayload" />
+				</td>
+			</tr>
+			<tr>
+				<td></td>
+				<td><%- reliableRetransmission %></td>
+				<td>
+					<select id="reliableRetransmission" name="reliableRetransmission" class="normal">
+						<option value="0"><%- disable %></option>
+						<option value="1"><%- enable %></option>
+					</select>
+					<span class="my-tooltips" title="<%- tips.reliableRetransmission %>">&nbsp;</span>
+				</td>
+			</tr>
+			<tr>
+				<td></td>
+				<td><%- subscribeForMwi %></td>
+				<td>
+					<select id="subscribeForMwi" name="subscribeForMwi" class="normal">
+						<option value="0"><%- disable %></option>
+						<option value="1"><%- enable %></option>
+					</select>					
+					<span class="my-tooltips" title="<%- tips.subscribeForMwi %>">&nbsp;</span>
+				</td>
+			</tr>
+			<tr>
+				<td></td>
+				<td><%- mwiSubscribePeriod %></td>
+				<td>
+					<input type="text" class="normal" id="mwiSubscribePeriod" name="mwiSubscribePeriod" />
+					&nbsp;(0~84600)
+				</td>
+			</tr>
+			<tr>
+				<td></td>
+				<td><%- useSessionTimer %></td>
+				<td>
+					<select id="useSessionTimer" name="useSessionTimer" class="normal">
+						<option value="0"><%- disable %></option>
+						<option value="1"><%- enable %></option>
+					</select>
+					<span class="my-tooltips" title="<%- tips.useSessionTimer %>">&nbsp;</span>
+				</td>
+			</tr>
+			<tr>
+				<td></td>
+				<td><%- sessionTimer %></td>
+				<td>
+					<input type="text" class="normal" id="sessionTimer" name="sessionTimer" />
+					<span class="my-tooltips" title="<%- tips.sessionTimer %>">&nbsp;</span>
+				</td>
+			</tr>
+			<tr>
+				<td></td>
+				<td><%- refresher %></td>
+				<td>
+					<select id="refresher" name="refresher" class="normal">
+						<option value="0">UAC</option>
+						<option value="1">UAS</option>
+					</select>
+					<span class="my-tooltips" title="<%- tips.refresher %>">&nbsp;</span>
+				</td>
+			</tr>
+			<tr>
+				<td></td>
+				<td><%- useUserPhone %></td>
+				<td>
+					<select id="useUserPhone" name="useUserPhone" class="normal">
+						<option value="0"><%- disable %></option>
+						<option value="1"><%- enable %></option>
+					</select>
+					<span class="my-tooltips" title="<%- tips.useUserPhone %>">&nbsp;</span>
+				</td>
+			</tr>
+			<tr>
+				<td></td>
+				<td><%- voiceEncryption %></td>
+				<td>
+					<select id="voiceEncryption" name="voiceEncryption" class="normal">
+						<option value="0"><%- off %></option>
+						<option value="1"><%- on %></option>
+					</select>
+					<span class="my-tooltips" title="<%- tips.voiceEncryption %>">&nbsp;</span>
+				</td>
+			</tr>
+			<tr>
+				<td></td>
+				<td><%- ptime %></td>
+				<td>
+					<input type="text" class="normal" id="ptime" name="ptime" />
+					<span class="my-tooltips" title="<%- tips.ptime %>">&nbsp;</span>
+				</td>
+			</tr>
+			<tr>
+				<td></td>
+				<td><%- blfListUri %></td>
+				<td>
+					<input type="text" class="normal" id="blfListUri" name="blfListUri" maxlength="255"/>
+					<span class="my-tooltips" title="<%- tips.blfListUri %>">&nbsp;</span>
+				</td>
+			</tr>
+			<tr>
+				<td></td>
+				<td><%- derectedCallPickupCode %></td>
+				<td>
+					<input type="text" class="normal" id="derectedCallPickupCode" name="derectedCallPickupCode" maxlength="28"/>
+				</td>
+			</tr>
+			<tr>
+				<td></td>
+				<td><%- groupCallPickupCode %></td>
+				<td>
+					<input type="text" class="normal" id="groupCallPickupCode" name="groupCallPickupCode" maxlength="28"/>
+				</td>
+			</tr>
+			<tr>
+				<td></td>
+				<td><%- sipRegRetryTimer %></td>
+				<td>
+					<input type="text" class="normal" id="sipRegRetryTimer" name="sipRegRetryTimer" />
+					&nbsp;(0~1800)
+					<span class="my-tooltips" title="<%- tips.sipRegRetryTimer %>">&nbsp;</span>
+				</td>
+			</tr>
+			<tr>
+				<td></td>
+				<td><%- earlyMedia %></td>
+				<td>
+					<select id="earlyMedia" name="earlyMedia" class="normal">
+						<option value="0"><%- disable %></option>
+						<option value="1"><%- enable %></option>
+					</select>
+				</td>
+			</tr>
+			<tr>
+				<td></td>
+				<td><%- intercomCode %></td>
+				<td>
+					<input type="text" class="normal" id="intercomCode" name="intercomCode" maxlength="39"/>
+				</td>
+			</tr>				
+			<tr>
+				<td></td>
+				<td><%- sipServerType %></td>
+				<td>
+					<select id="sipServerType" name="sipServerType" class="normal">
+						<option value="0"><%- sipServerTypeOpt0 %></option>
+						<option value="1"><%- sipServerTypeOpt1 %></option>
+						<option value="2"><%- sipServerTypeOpt2 %></option>
+						<option value="3"><%- sipServerTypeOpt3 %></option>
+						<option value="4"><%- sipServerTypeOpt4 %></option>
+					</select>
+				</td>
+			</tr>							
+			<tr>
+				<td></td>
+				<td><%- conferenceType %></td>
+				<td>
+					<select id="conferenceType" name="conferenceType" class="normal">
+						<option value="0"><%- localConference %></option>
+						<option value="1"><%- networkConference %></option>
+					</select>
+				</td>
+			</tr>
+			<tr>
+				<td></td>
+				<td><%- conferenceCode %></td>
+				<td>
+					<input type="text" class="normal" id="conferenceCode" name="conferenceCode" maxlength="63"/>
+				</td>
+			</tr>
+		</tbody>
+		
+	</table>
+	
+	<div class="page-button">
+		<a id="save" href="javascript:;"><%- butConfirm %></a> 
+		&nbsp;&nbsp;&nbsp;&nbsp;
+		&nbsp;&nbsp;&nbsp;&nbsp;	
+		<a id="reset" href="javascript:;"><%- butCancel %></a>  
+	</div>
+	</script>
+	</form>
+</div>

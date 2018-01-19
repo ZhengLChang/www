@@ -1,0 +1,261 @@
+<script type="text/javascript">
+$(document).ready(function(){
+	accountCodecsHtml.form1.model = Page.model;
+	TempUtil.render('form1Temp', 'form1', accountCodecsHtml.form1);
+	
+	var origialJSON,
+		$form = $('#form1');
+	
+	function createOptionHtml(items){
+		var len = items.length, i, item;
+		var sb = new StringBuilder();
+		for(i = 0; i < len; i++){
+			item = items[i];
+			sb.append(String.format('<option value="{0}">{1}</option>',
+									item[1], item[0]));
+		}
+		
+		return sb.toString();
+	}
+	
+	function renderData(data){
+		var disabledList = [], enabledList = [];
+		var len = data.length, i, item;
+		for(i = 0; i < len; i++){
+			item = data[i];
+			if(item[2] == 0){
+				disabledList.push(item);
+			} else {
+				enabledList.push(item);
+			}
+		}
+
+		enabledList.sort(function(item1, item2){
+			return item1[3] > item2[3] ? 1 : -1;
+		})		
+		
+		var disabledHtml = createOptionHtml(disabledList),
+			enabledHtml = createOptionHtml(enabledList);
+
+		Page.setFormFieldValue('accountNumber', Page.currentAccount);
+		
+		$('#enabledCodecsList').html(enabledHtml);
+		$('#disabledCodecsList').html(disabledHtml);
+		
+	}
+	
+	function initPage(){			
+		$('#save').linkbutton();  
+		$('#reset').linkbutton(); 
+	}
+	
+	Page.postJSON({
+		url: MenuItem.aCodecs.get,
+		data: "accountNum=" + Page.currentAccount,
+		success: function(data){
+			origialJSON = data;
+			renderData(data);
+			initPage();
+			
+			Page.$iframe.show();
+		}
+	}); 
+	
+	
+	
+	
+	$('#save').click(function(){
+		var json = {}, jsonArray = [];
+		
+		var enabledOptions = $("#enabledCodecsList option"),
+			disabledOptions = $("#disabledCodecsList option"),
+			/*conflict = [],*/ iLBC_conflict = [];
+		
+		$.each(enabledOptions, function(i, ele){
+			json["name_" + i] = ele.text;
+			json["id_" + i] = ele.value;
+			json["enable_" + i] = 1;
+			json["priority_" + i] = i;
+			/*
+			if(ele.text == "G723_53" || ele.text == "G723_63"){
+				conflict.push(ele.text);
+			}
+		*/	
+			if(ele.text == "iLBC_13_3" || ele.text == "iLBC_15_2"){
+				iLBC_conflict.push(ele.text);
+			}
+			jsonArray.push([ele.text, ele.value, 1, i]);
+		});
+		
+		if( enabledOptions.length === 0){
+			AlertUtil.alertMsg(alertMsg.enabledOptionsEmpty);
+			return ;
+		}
+		
+		if(/*conflict.length == 2 || */iLBC_conflict.length == 2){
+			AlertUtil.alertMsg(alertMsg.codecsConflict);
+			return ;
+		}
+		
+		var costLen = enabledOptions.length;
+		
+		$.each(disabledOptions, function(i, ele){
+			var len = i + costLen;
+			json["name_" + len] = ele.text;
+			json["id_" + len] = ele.value;
+			json["enable_" + len] = 0;
+			json["priority_" + len] = 0;
+			
+			jsonArray.push([ele.text, ele.value, 0, len]);
+		});
+		json.accountNumber = $('#accountNumber').val();
+		
+		Page.postJSON({
+			url: MenuItem.aCodecs.set,
+			data: JSON.serializeToParms(json),
+			success: function(data){
+				AlertUtil.saveSuccess();
+				origialJSON = jsonArray;
+			}
+		}); 
+	});
+	
+	$('#reset').click(function(){
+		if(origialJSON){
+			renderData(origialJSON);
+		}
+	});
+	
+	$('#accountNumber').change(function(){
+		var accountNum = this.value;
+		Page.currentAccount = accountNum;
+		Page.postJSON({
+			url: MenuItem.aCodecs.get,
+			data: "accountNum="+accountNum,
+			success: function(data){
+				origialJSON = data;
+				renderData(data);
+			}
+		}); 
+	});
+	
+	$("#btnMoveUp,#btnMoveDown").click(function() {   
+		var $opt = $("#enabledCodecsList option:selected:first");   
+		if (!$opt.length) return;   
+		if (this.id == "btnMoveUp"){
+			$opt.prev().before($opt);   
+		} else {
+			$opt.next().after($opt);   
+		}
+	});  
+	
+	$("#btnMoveRight").click(function (){
+		$("#disabledCodecsList option:selected").appendTo("#enabledCodecsList");
+	});	
+	$("#disabledCodecsList").dblclick(function (){
+
+		$("#disabledCodecsList option:selected").appendTo("#enabledCodecsList");
+	});
+	
+	$("#btnMoveLeft").click(function (){
+		$("#enabledCodecsList option:selected").appendTo("#disabledCodecsList");
+	});
+	$("#enabledCodecsList").dblclick(function (){
+
+		$("#enabledCodecsList option:selected").appendTo("#disabledCodecsList");
+	});
+	
+});
+</script>
+<div class="detail_box">
+	<form id="form1">
+	<script type="text/template" id="form1Temp">
+	<table class="list2">
+		<tbody>
+			<tr class="head2">
+				<td colspan="2"><%- accountNumber %></td>
+				<td style="text-indent: 0;">
+					<select id="accountNumber" name="accountNumber" class="normal">
+						<% if(Page.accountNum >= 1) { %>
+							<option value="1"><%- accountNumberOpt1 %></option>
+						<% } %>
+						<% if(Page.accountNum >= 2) { %>
+							<option value="2"><%- accountNumberOpt2 %></option>
+						<% } %>
+						<% if(Page.accountNum >= 3) { %>
+							<option value="3"><%- accountNumberOpt3 %></option>
+						<% } %>
+						<% if(Page.accountNum >= 4) { %>
+							<option value="4"><%- accountNumberOpt4 %></option>
+						<% } %>
+						<% if(Page.accountNum >= 5) { %>
+							<option	value="5"><%- accountNumberOpt5 %></option>
+						<% } %>
+						<% if(Page.accountNum >= 6) { %>
+							<option value="6"><%- accountNumberOpt6 %></option>
+						<% } %>
+					</select>
+				</td>
+			</tr>
+			<tr>
+				<td colspan="3"></td>
+			</tr>
+			<tr>
+				<td class="list2td1">&nbsp;</td>
+				<td class="list2td3"><%- audioCodecs %></td>
+				<td>&nbsp;</td>
+			</tr>
+			<tr>
+				<td colspan="3" style="text-align: center;">
+					<table style="width: 350px;margin: 0 auto;">
+						<tr>
+							<td><%- disableCodecs %></td>
+							<td>&nbsp;</td>
+							<td><%- enableCodecs %></td>
+							<td>&nbsp;</td>
+						</tr>
+						<tr>
+							<td>
+								<select id="disabledCodecsList" size="13" multiple="multiple" style="width: 150px"> 
+									<!-- <option value="0">PCMU</option> 
+									<option value="1">PCMA</option> 
+									<option value="2">G723_53</option> 
+									<option value="3">G723_63</option> 
+									<option value="4">G729</option>
+									<option value="5">G722</option>
+									<option value="6">ILBC</option>
+									<option value="7">G726_16</option>
+									<option value="8">G726_24</option>
+									<option value="9">G726_32</option>
+									<option value="10">G726_40</option> -->
+								</select> 
+							</td>
+							<td>
+								<input type="button" id="btnMoveRight" class="codecs-operate my-button" value="&gt;" />					
+								<input type="button" id="btnMoveLeft" class="codecs-operate my-button" value="&lt;" />
+							</td>
+							<td>
+								<select id="enabledCodecsList" size="13" multiple="multiple" style="width: 150px">
+								</select>  
+							</td>
+							<td>
+								<input type="button" value="&and;" id="btnMoveUp" class="codecs-operate my-button"/>				
+								<input type="button" value="&or;" id="btnMoveDown" class="codecs-operate my-button"/> 
+							</td>
+						</tr>
+					</table>
+				</td>
+			</tr>
+		</tbody>
+		
+	</table>
+	
+	<div class="page-button">
+		<a id="save" href="javascript:;"><%- butConfirm %></a> 
+		&nbsp;&nbsp;&nbsp;&nbsp;
+		&nbsp;&nbsp;&nbsp;&nbsp;
+		<a id="reset" href="javascript:;"><%- butCancel %></a>  
+	</div>
+	</script>
+	</form>
+</div>

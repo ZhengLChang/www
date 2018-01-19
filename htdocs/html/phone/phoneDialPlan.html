@@ -1,0 +1,741 @@
+<script type="text/javascript">
+$(document).ready(function(){
+	TempUtil.render('mytab_menuTemp', 'mytab_menu', phoneDialPlanHtml.mytabMenu);
+	TempUtil.render('replaceRuleFormTemp', 'replaceRuleForm', phoneDialPlanHtml.replaceRuleForm);
+	TempUtil.render('dialNowsFormTemp', 'dialNowsForm', phoneDialPlanHtml.dialNowsForm);
+	TempUtil.render('form3Temp', 'form3', phoneDialPlanHtml.form3);
+	TempUtil.render('form4Temp', 'form4', phoneDialPlanHtml.form4);
+	
+	var origialJSON,
+		origialStr,
+		rrLists,
+		dnLists,
+		maxRrLen = 1000,
+		maxDnlen = 1000,
+		rrTemp = $('#replaceRuleTemp').html(),
+		dnTemp = $('#dialNowsTemp').html(),
+		$form3 = $('#form3'),
+		$form4 = $('#form4');
+
+	
+	var $inputNums = null;
+	
+	function initPage(){
+		
+		$('#minLen').numberbox({
+			min: 1,
+			max: 15
+		});
+		$('#maxLen').numberbox({
+			min: 1,
+			max: 15
+		});
+		
+		$('#saveAreaCode').linkbutton();  
+		$('#resetAreaCode').linkbutton();
+		
+		//form4
+		$('#saveBlockOut').linkbutton();  
+		$('#resetBlockOut').linkbutton(); 
+	}
+	
+	function renderData3(data){
+		Page.setFormFieldValue('code', data.code);
+		Page.setFormFieldValue('minLen', data.minLen);
+		Page.setFormFieldValue('maxLen', data.maxLen);
+		Page.setFormFieldValue('areaCodeAccount', data.areaCodeAccount);
+		
+		$inputNums = ValidHelper.numHelper($inputNums, '#form3 input.numberbox-f');
+	}
+	
+	function renderData4(data){
+		_.each(data, function(item, i){
+			Page.setFormFieldValue("blockOutNum_" + i, item[0]);
+			Page.setFormFieldValue("blockOutAccount_" + i, item[1]);
+		});
+		
+	}
+	
+	function renderData1(){
+		TempUtil.render2(rrTemp, 'replaceRule', {rrs: rrLists});
+		//TableUtil.setStripeTable3('#replaceRule table.list4');
+	}
+	
+	function renderData2(){
+		TempUtil.render2(dnTemp, 'dialNows', {dns: dnLists});
+		//TableUtil.setStripeTable3('#dialNows table.list4');
+	}
+	
+	var $lis = $("ul.mytabs a");
+    var $boxes = $("div.mytab_boxes > div");
+    $lis.click(function() {
+		$lis.removeClass("current");
+		$(this).addClass("current");
+		var pannelIndex = $lis.index(this);
+		$boxes.eq(pannelIndex).show().siblings().hide();
+ 
+        switch (pannelIndex) {
+        	case 0:
+        		Page.postJSON({
+        			url: MenuItem.pDialPlan.getReplaceRule,
+        			success: function(data){
+        				data.unshift(phoneDialPlanHtml.replaceRuleTitle);
+        				origialJSON = data;
+        				rrLists = data;
+        				
+        				renderData1();
+        				Page.$iframe.show();
+        				Page.iePercentFix('tabsitems', 0.25, 4);
+        				origialStr = JSON.serializeToParms(rrLists);
+        			}
+        		});
+        		
+        		break;
+        	case 1:
+        		Page.postJSON({
+        			url: MenuItem.pDialPlan.getDialNows,
+        			success: function(data){        			        		
+        				data.unshift(phoneDialPlanHtml.dialNowsTitle);        			
+        				dnLists = data;
+        				
+        				renderData2();
+        				Page.$iframe.show();
+        				Page.iePercentFix('tabsitems', 0.25, 4);
+        				origialStr = JSON.serializeToParms(dnLists);
+        			}
+        		});
+        		break;
+        	case 2:
+        		Page.postJSON({
+        			url: MenuItem.pDialPlan.getAreaCode,
+        			success: function(data){
+        				origialJSON = data;
+        				
+        				renderData3(data);
+        				Page.iePercentFix('tabsitems', 0.25, 4);
+        				origialStr = $form3.formSerialize();
+        				//$inputNums = ValidHelper.numHelper($inputNums, '#form3 input.numberbox-f');
+        			}
+        		});
+        		break;
+        	case 3:
+        		Page.postJSON({
+        			url: MenuItem.pDialPlan.getBlockOut,
+        			success: function(data){
+        				origialJSON = data;
+        				
+        				renderData4(data);
+        				Page.iePercentFix('tabsitems', 0.25, 4);
+        				TableUtil.setStripeTable3('#replaceRule table.list4');
+        				origialStr = $form4.formSerialize();
+        			}
+        		});
+        		break;
+        	default:
+        		break;
+        	
+        }
+    });
+    
+    $replaceRule = $('#replaceRule');
+    $replaceRule.delegate('input[id=trr0]', 'click', function(){    
+		
+		var selected = $(this).prop('checked');
+		$('input[id^=rrList]').prop('checked', selected);
+		
+	});
+	$replaceRule.delegate('tr', 'click', function(e){
+		var $target = $(e.target);
+		
+	    if( $target.is("input") ) {
+	    	return true;
+	    } 
+
+		var index = parseInt(this.id.substring(4));
+		if(index == 0){
+			return false;
+		}
+		var $this = $(this),
+			$input = $this.find('input'),
+			checked = $input.prop('checked');
+		
+		$input.prop('checked', !checked);
+		if($this.hasClass('active-tr')){
+			$this.removeClass('active-tr');
+			setRR();
+		} else {
+			$this.addClass('active-tr').siblings().removeClass('active-tr');
+			var item = rrLists[index];
+				//item.push(index);
+				item[3] ? item[3] = index : item.push(index);
+			setRR(item);
+		}
+		
+		
+	});
+    
+    
+    var $rrNum = $('#rrNum'),
+    	$rrReplace = $('#rrReplace'),
+    	$rrAccount = $('#rrAccount'),
+    	$rrHide = $('#rrHide');
+
+	function getRR(){
+		var rr = [];
+		rr.push($rrNum.val() || '');
+		rr.push($rrReplace.val() || '');
+		rr.push($rrAccount.val() || '');
+		rr.push($rrHide.val() || '-1');
+		return rr;
+	}
+	
+	function setRR(item){
+		if(!item){
+			item = ['', '', '', '-1'];
+		}
+		$rrNum.val(item[0] || '');
+		$rrReplace.val(item[1] || '');
+		$rrAccount.val(item[2] || '');
+		$rrHide.val(item[3] || '-1')
+	}
+   function isRepetition(list, value, ignoreIndex)
+   {
+	   var i, len = list.length;
+	   if(len <= 1)
+	   {
+		   return false;
+	   }
+	  for(i = 1; i < len; i++)
+	  {
+		  if(list[i][0] == value && ignoreIndex != i)
+		  {
+			  return true;
+		  }
+	  }
+	  return false;
+   }
+    $('#btnAddRR').click(function(){
+    	if(rrLists.length > (maxRrLen + 1)){
+    		return false;
+    	}
+    	var item = getRR();
+    	
+    	if(!item[0] || !item[1]){
+    		AlertUtil.invalidVal();
+    		return false;
+    	} 
+    	if(item[2] && !/^(\d+,?)+$/.test(item[2])){
+    		$.messager.alert(alertMsg.titlePrompt, alertMsg.invalidAccountList, 'info');
+    		return false;
+    	}
+    	if(isRepetition(rrLists, item[0], -1))	
+	{
+    		AlertUtil.invalidVal();
+		return false;
+	}
+    	rrLists.push(item);
+    	setRR();
+    	renderData1();
+    });
+    
+    $('#btnEditRR').click(function(){
+    	var item = getRR();
+    	
+    	if(!item[0] || !item[1]){
+    		AlertUtil.invalidVal();
+    		return false;
+    	}
+    	
+    	if(item[2] && !/^(\d+,?)+$/.test(item[2])){
+    		$.messager.alert(alertMsg.titlePrompt, alertMsg.invalidAccountList, 'info');
+    		return false;
+    	}
+    	
+    	var index = item[3] || -1;
+    	if(isRepetition(rrLists, item[0], index))	
+	{
+    		AlertUtil.invalidVal();
+		return false;
+	}
+    	if(index != -1){
+    		rrLists[index] = item;
+    	}
+
+    	setRR();
+    	renderData1();
+    });
+	
+    $('#btnDeleteRR').click(function(){
+    	var $items = $('input[id^=rrList]:checked');
+    	if($items.length == 0){
+    		$.messager.alert(alertMsg.titlePrompt, alertMsg.dialPlanMsg1, 'info');
+    		return false;
+    	}
+    	setRR();
+    	$items.each(function(){
+    		var index = this.id.substring(6);
+    			index = parseInt(index);
+    		rrLists[index] = false;
+    	});
+    	
+    	var rrListsBackup = [] , len = rrLists.length;
+    	for(i = 0; i < len; i++){
+    		if(rrLists[i]){
+    			rrListsBackup.push(rrLists[i]);
+    		}
+    	}
+    	
+    	rrLists = rrListsBackup;
+    	rrListsBackup = null;
+    	
+    	renderData1();
+    });
+    
+    $('#btnSaveRR').click(function(){
+    	var i, len;
+    	len = rrLists.length;
+    	for(i = 0; i < len; i++){
+    		if(rrLists[i][3] != null){
+    			rrLists[i].pop();
+    		}
+    	}
+    	if(origialStr == JSON.serializeToParms(rrLists)){
+			AlertUtil.saveNoChange();
+			return false;
+    	}
+    	
+    	var sendParams = [] ,item, params;
+    	//var params = String.format("count={}lists=");
+    	if(len == 1){
+    		params = 'count=0';
+    	} else {
+    		for(i = 1; i < len; i++){
+    			item = rrLists[i];
+    			sendParams.push(String.format('n_{0}={1}&r_{0}={2}&a_{0}={3}',
+    											i, item[0], item[1], item[2]));
+    		}
+    		params = String.format("count={0}&{1}", len-1, sendParams.join('&'));
+    	}
+		
+		Page.postJSON({
+			url: MenuItem.pDialPlan.setReplaceRule,
+			data: params,
+			success: function(){
+				AlertUtil.saveSuccess();
+				
+				origialStr = JSON.serializeToParms(rrLists);
+				
+			}
+		});
+	});
+    
+    
+    $dialNows = $('#dialNows');
+    $dialNows.delegate('input[id=tdn0]', 'click', function(){    
+		
+		var selected = $(this).prop('checked');
+		$('input[id^=dnList]').prop('checked', selected);
+		
+	});
+    
+    $dialNows.delegate('tr', 'click', function(e){
+		var $target = $(e.target);
+		
+	    if( $target.is("input") ) {
+	    	return true;
+	    } 
+
+		var index = parseInt(this.id.substring(4));
+		if(index == 0){
+			return false;
+		}
+		var $this = $(this),
+			$input = $this.find('input'),
+			checked = $input.prop('checked');
+		
+		$input.prop('checked', !checked);
+		if($this.hasClass('active-tr')){
+			$this.removeClass('active-tr');
+			setDn();
+		} else {
+			$this.addClass('active-tr').siblings().removeClass('active-tr');
+			var item = dnLists[index];
+				
+				item[2] ? item[2] = index : item.push(index);
+			setDn(item);
+		}
+		
+		
+	});
+    
+    
+    var $dnRule = $('#dnRule'),
+    	$dnAccount = $('#dnAccount'),
+    	$dnHide = $('#dnHide');
+
+	function getDn(){
+		var dn = [];
+		dn.push($dnRule.val() || '');
+		dn.push($dnAccount.val() || '');
+		dn.push($dnHide.val() || '-1');
+		return dn;
+	}
+	
+	function setDn(item){
+		if(!item){
+			item = ['', '', '-1'];
+		}
+		$dnRule.val(item[0] || '');
+		$dnAccount.val(item[1] || '');
+		$dnHide.val(item[2] || '-1')
+	}
+	
+	$('#btnAddDn').click(function(){
+		if(dnLists.length > (maxDnlen + 1)){
+			return false;
+		}
+    	var item = getDn();
+    	
+    	if(!item[0]){
+    		AlertUtil.invalidVal();
+    		return false;
+    	}
+    	if(item[1] && !/^(\d+,?)+$/.test(item[1])){
+    		$.messager.alert(alertMsg.titlePrompt, alertMsg.invalidAccountList, 'info');
+    		return false;
+    	}
+
+    	if(isRepetition(dnLists, item[0], -1))	
+	{
+    		AlertUtil.invalidVal();
+		return false;
+	}
+    	
+    	dnLists.push(item);
+    	setDn();
+    	renderData2();
+    });
+    
+    $('#btnEditDn').click(function(){
+    	var item = getDn();
+    	
+    	if(!item[0]){
+    		AlertUtil.invalidVal();
+    		return false;
+    	}
+    	if(item[1] && !/^(\d+,?)+$/.test(item[1])){
+    		$.messager.alert(alertMsg.titlePrompt, alertMsg.invalidAccountList, 'info');
+    		return false;
+    	}
+    	
+    	var index = item[2] || -1;
+    	if(isRepetition(dnLists, item[0], index))	
+	{
+    		AlertUtil.invalidVal();
+		return false;
+	}
+    	if(index != -1){
+    		dnLists[index] = item;
+    	}
+    	setDn();
+    	renderData2();
+    });
+	
+    $('#btnDeleteDn').click(function(){
+    	var $items = $('input[id^=dnList]:checked');
+    	if($items.length == 0){
+    		$.messager.alert(alertMsg.titlePrompt, alertMsg.dialPlanMsg1, 'info');
+    		return false;
+    	}
+    	setDn();
+    	$items.each(function(){
+    		var index = this.id.substring(6);
+    			index = parseInt(index);
+    		dnLists[index] = false;
+    	});
+    	
+    	var dnListsBackup = [] , len = dnLists.length;
+    	for(i = 0; i < len; i++){
+    		if(dnLists[i]){
+    			dnListsBackup.push(dnLists[i]);
+    		}
+    	}
+    	
+    	dnLists =dnListsBackup;
+    	dnListsBackup = null;
+    	
+    	renderData2();
+    });
+    
+    $('#btnSaveDn').click(function(){
+    	var i, len;
+    	len = dnLists.length;
+    	for(i = 0; i < len; i++){
+    		if(dnLists[i][2] != null){
+    			dnLists[i].pop();
+    		}
+    	}
+    	
+    	if(origialStr == JSON.serializeToParms(dnLists)){
+			AlertUtil.saveNoChange();
+			return false;
+    	}
+    	
+    	var sendParams = [] ,item, params;
+    	if(len == 1){
+    		params = 'count=0';
+    	} else {
+    		for(i = 1; i < len; i++){
+    			item = dnLists[i];
+    			sendParams.push(String.format('r_{0}={1}&a_{0}={2}',
+    											i, item[0], item[1]));
+    		}
+    		params = String.format("count={0}&{1}", len-1, sendParams.join('&'));
+    	}
+		
+		Page.postJSON({
+			url: MenuItem.pDialPlan.setDialNows,
+			data: params,
+			success: function(){
+				AlertUtil.saveSuccess();
+				
+				origialStr = JSON.serializeToParms(dnLists);
+				
+			}
+		});
+	});
+    
+    
+    $('#saveAreaCode').click(function(){
+    	if(origialStr == $form3.formSerialize()){
+			AlertUtil.saveNoChange();
+			return false;
+		}
+		var json = JSON.parmsToJSON($form3);
+		
+		Page.postJSON({
+			url: MenuItem.pDialPlan.setAreaCode,
+			data: JSON.serializeToParms(json),
+			success: function(data){
+				AlertUtil.saveSuccess();
+				origialJSON = json;
+				origialStr = $form3.formSerialize();
+				
+			}
+		});
+	});
+    $('#resetAreaCode').click(function(){
+		if(origialJSON){
+			renderData3(origialJSON);
+			$inputNums = ValidHelper.numHelper($inputNums, '#form3 input.numberbox-f');
+		}
+	});
+    
+    $('#saveBlockOut').click(function(){
+    	if(origialStr == $form4.formSerialize()){
+			AlertUtil.saveNoChange();
+			return false;
+		}
+		var json = JSON.parmsToJSON($form4);
+		
+		Page.postJSON({
+			url: MenuItem.pDialPlan.setBlockOut,
+			data: JSON.serializeToParms(json),
+			success: function(data){
+				AlertUtil.saveSuccess();
+				origialJSON = json;
+				origialStr = $form4.formSerialize();
+				
+			}
+		});
+	});
+    $('#resetBlockOut').click(function(){
+		if(origialJSON){
+			renderData4(origialJSON);
+			//$inputNums = ValidHelper.numHelper($inputNums);
+		}
+	});
+    
+    initPage();
+    $lis.eq(0).click();
+});
+</script>
+<div class="detail_box">
+	<div class="mytab_menu" id="mytab_menu">
+		<script type="text/template" id="mytab_menuTemp">     
+    	<ul class="mytabs" id="tabsitems">
+        	<li style="width: 25%;"><a href="javascript:;"><%- replaceRule %></a></li><!--
+        	--><li style="width: 25%;"><a href="javascript:;"><%- dialNow %></a></li><!--
+        	--><li style="width: 25%;"><a href="javascript:;"><%- areaCode %></a></li><!--
+        	--><li style="width: 25%;"><a href="javascript:;"><%- blockOut %></a></li>
+    	</ul>
+		</script>
+	</div>
+	<div class="main_box">
+		<div class="mytab_boxes">
+			<div>
+				<div id="replaceRule">
+				<script type="text/template" id="replaceRuleTemp">
+            	<table class="list4">
+				<% _.each(rrs, function(item, i){ %>
+					<% if(i == 0){ %>
+            		<tr id="rrTr<%- i %>" style="font-weight: bold; background-color: #fff;">
+            			<td style="width: 10%;"><%- item[0] %></td>
+            			<td style="width: 25%;"><%- item[1] %></td>
+            			<td><%- item[2] %></td>
+            			<td style="width: 25%;"><%- item[3] %></td>
+            			<td style="width: 6%;"><input type="checkbox" id="trr0" /></td>
+            		</tr>
+					<%} else {%>
+					<tr id="rrTr<%- i %>">
+            			<td class="list4-td-frist-border"><%- i %></td>
+            			<td class="list4-td-border"><%- item[0] %></td>
+            			<td class="list4-td-border"><%- item[1] %></td>
+            			<td class="list4-td-border"><%- item[2] %></th>
+            			<td class="list4-td-border"><input type="checkbox" id="rrList<%- i %>" /></td>
+            		</tr>
+					<% } %>
+				<% }) %>
+            	</table>
+				</script>
+            	</div>
+            	<div id="replaceRuleForm">
+            		<script type="text/template" id="replaceRuleFormTemp">
+            		<div style="margin: 5px auto; text-align:center;"><span class="span-required">*</span><%- num %>&nbsp;
+                    <input id="rrNum" name="rrNum" type="text" style="width:20%" maxlength="29">
+                    <input id="rrHide" type="hidden" value="-1">
+                    &nbsp;
+                    <span class="span-required">*</span><%- replace %>&nbsp;
+                    <input id="rrReplace" name="rrReplace" type="text" style="width:20%" maxlength="29">
+                    &nbsp;
+                    <%- account %>&nbsp;
+                    <input id="rrAccount" name="rrAccount" type="text" style="width:20%" maxlength="29">
+                  </div>
+                  <div style="margin: 10px auto; text-align:center;">
+                    <input id="btnAddRR" type="button" class="my-button" value="<%- add %>"/>
+                    &nbsp;&nbsp;
+                    <input id="btnEditRR" type="button" class="my-button" value="<%- edit %>"/>
+                    &nbsp;&nbsp;
+                    <input id="btnDeleteRR" type="button" class="my-button" value="<%- del %>"/>
+                    &nbsp;&nbsp;
+                    <input id="btnSaveRR" type="button" class="my-button" value="<%- save %>"/>
+                    &nbsp;&nbsp; </div>
+				</script>
+            	</div>
+            </div>
+            <div>
+                <div id="dialNows">
+                <script type="text/template" id="dialNowsTemp">
+            	<table class="list4">
+				<% _.each(dns, function(item, i){ %>
+					<% if(i == 0){ %>
+            		<tr id="dnTr<%- i %>" style="font-weight: bold; background-color: #fff;">
+            			<td style="width: 10%;"><%- item[0] %></td>
+            			<td><%- item[1] %></td>
+            			<td style="width: 25%;"><%- item[2] %></td>
+            			<td style="width: 6%;"><input type="checkbox" id="tdn0" /></td>
+            		</tr>
+					<%} else {%>
+					<tr id="dnTr<%- i %>">
+            			<td class="list4-td-frist-border"><%- i %></td>
+            			<td class="list4-td-border"><%- item[0] %></td>
+            			<td class="list4-td-border"><%- item[1] %></td>
+            			<td class="list4-td-border"><input type="checkbox" id="dnList<%- i %>" /></td>
+            		</tr>
+					<% } %>
+				<% }) %>
+            	</table>
+				</script>   
+            	</div>
+            	<div id="dialNowsForm">
+            	<script type="text/template" id="dialNowsFormTemp">
+            		<div style="margin: 5px auto; text-align:center;">
+                    	<span class="span-required">*</span><%- rule %>&nbsp;&nbsp;
+                    	<input id="dnRule" name="editReplace" type="text" style="width:30%" maxlength="99"/>
+                    	<input id="dnHide" type="hidden" value="-1">
+                    	&nbsp;&nbsp;
+                    	<%- account %>&nbsp;&nbsp;
+                    	<input id="dnAccount" name="editRRAccount" type="text" style="width:20%" maxlength="29" />
+                  </div>
+                  <div style="margin: 10px auto; text-align:center;">
+                    <input id="btnAddDn" type="button" class="my-button" value="<%- add %>"/>
+                    &nbsp;&nbsp;
+                    <input id="btnEditDn" type="button" class="my-button" value="<%- edit %>"/>
+                    &nbsp;&nbsp;
+                    <input id="btnDeleteDn" type="button" class="my-button" value="<%- del %>"/>
+                    &nbsp;&nbsp;
+                    <input id="btnSaveDn" type="button" class="my-button" value="<%- save %>"/>
+                    &nbsp;&nbsp; </div>
+					</script>
+            	</div>
+			
+            </div>
+            <div>
+             	<form id="form3">
+             	<script type="text/template" id="form3Temp">
+               	<table class="list2">
+		             <tr>
+						<td class="list2td1"></td>
+						<td class="list2td3"><%- code %></td>
+						<td>
+							<input type="text" class="normal" id="code" name="code"/>
+						</td>
+					</tr>
+					<tr>
+						<td class="list2td1"></td>
+						<td class="list2td3"><%- minLen %></td>
+						<td>
+							<input type="text" class="normal" id="minLen" name="minLen" maxlength="2"/>
+							&nbsp;(1~15)
+						</td>
+					</tr>
+					<tr>
+						<td class="list2td1"></td>
+						<td class="list2td3"><%- maxLen %></td>
+						<td>
+							<input type="text" class="normal" id="maxLen" name="maxLen" maxlength="2"/>
+							&nbsp;(1~15)
+						</td>
+					</tr>
+					<tr>
+						<td class="list2td1"></td>
+						<td class="list2td3"><%- areaCodeAccount %></td>
+						<td>
+							<input type="text" class="normal" id="areaCodeAccount" name="areaCodeAccount"/>
+						</td>
+					</tr>
+               </table>
+               <div class="page-button">
+					<a id="saveAreaCode" href="javascript:;"><%- butConfirm %></a> 
+					&nbsp;&nbsp;&nbsp;&nbsp;
+					&nbsp;&nbsp;&nbsp;&nbsp;	
+					<a id="resetAreaCode" href="javascript:;"><%- butCancel %></a>  
+				</div>
+				</script>
+				</form>
+            </div>
+             <div>
+             	<form id="form4">
+             	<script type="text/template" id="form4Temp">
+                <table class="list3">
+					<% _.each(nums, function(item, i){ %>
+                	<tr>
+                		<td><%- blockOutNum + (i + 1) %></td>
+                		<td><input type="text" class="normal" id="blockOutNum_<%- i %>" name="blockOutNum_<%- i %>" maxlength="63"/></td>
+                		<td><%- account %></td>
+                		<td><input type="text" class="normal" id="blockOutAccount_<%- i %>" name="blockOutAccount_<%- i %>" maxlength="29"/></td>
+                	</tr>
+					<% }) %>
+                </table>
+                 <div class="page-button">
+					<a id="saveBlockOut" href="javascript:;"><%- butConfirm %></a> 
+					&nbsp;&nbsp;&nbsp;&nbsp;
+					&nbsp;&nbsp;&nbsp;&nbsp;	
+					<a id="resetBlockOut" href="javascript:;"><%- butCancel %></a>  
+				</div>
+				</script>
+				</form>
+            </div>
+        </div>
+    </div> 	
+</div>

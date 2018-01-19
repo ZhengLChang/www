@@ -1,0 +1,191 @@
+<script type="text/javascript">
+var listenList = [["","",0],["","",0],["","",0],["","",0],["","",0],["","",0],["","",0],["","",0],["","",0],["","",0],["","",0],["","",0],["","",0],["","",0],["","",0],["","",0],["","",0],["","",0],["","",0],["","",0],["","",0],["","",0],["","",0],["","",0],["","",0],["","",0],["","",0],["","",0],["","",0],["","",0],["","",0]], 
+    pagingList = [["","",0],["","",0],["","",0],["","",0],["","",0],["","",0],["","",0],["","",0],["","",0],["","",0],["","",0],["","",0],["","",0],["","",0],["","",0],["","",0],["","",0],["","",0],["","",0],["","",0],["","",0],["","",0],["","",0],["","",0],["","",0],["","",0],["","",0],["","",0],["","",0],["","",0],["","",0]];
+$(document).ready(function(){
+	multicastHtml.form1.model = Page.model;
+	TempUtil.render('form1Temp', 'form1', multicastHtml.form1);
+	
+	var origialJSON,
+		origialStr,
+		$form = $('#form1'),
+		$listenList = $('#listenList'),
+		$pagingList = $('#pagingList');
+	
+	function renderData(data){
+		Page.setFormFieldValue("paging_barge", data.paging_barge);
+		Page.setFormFieldValue("ignore_DND", data.ignore_DND);
+		Page.setFormFieldValue("paging_priority_active", data.paging_priority_active);
+		Page.setFormFieldValue("listenList", data.listenList);
+		Page.setFormFieldValue("pagingList", data.pagingList);
+		listenList = data.listenList;
+		pagingList =  data.pagingList;
+		_.each(listenList, function(item, i){ 
+			Page.setFormFieldValue("listen_address_" +  i, item[0]);
+			Page.setFormFieldValue("listen_lable_" +  i, item[1]);
+			Page.setFormFieldValue("listen_channel_" +  i, item[2]);
+		});
+
+		_.each(pagingList, function(item, i){ 
+			Page.setFormFieldValue("paging_address_" +  i, item[0]);
+			Page.setFormFieldValue("paging_lable_" +  i, item[1]);
+			Page.setFormFieldValue("paging_channel_" +  i, item[2]);
+		});
+	}
+	
+	function initPage(){
+		$('#save').linkbutton();  
+		$('#reset').linkbutton(); 
+	}
+	
+	Page.postJSON({
+		url: MenuItem.cMulticastIp.get,
+		success: function(data){
+			origialJSON = data;
+			renderData(data);
+			initPage();
+			
+			//TableUtil.setStripeTable3();
+			Page.$iframe.show();
+			origialStr = $form.formSerialize();
+		}
+	});
+	
+	
+	 $('#save').click(function(){
+		var json = JSON.parmsToJSON($form);
+		if(origialStr == $form.formSerialize()){
+			AlertUtil.saveNoChange();
+			
+			return false;
+		}
+		
+		Page.postJSON({
+			url: MenuItem.cMulticastIp.set,
+			data: JSON.serializeToParms(json),
+			success: function(data){
+				AlertUtil.saveSuccess();
+				origialJSON = json;
+				origialStr = $form.formSerialize();
+				
+			}
+		});
+	});
+	
+	$('#reset').click(function(){
+		if(origialJSON){
+			renderData(origialJSON);
+		}
+	});
+});
+</script>
+<div class="detail_box">
+	<form id="form1">
+	<script type="text/template" id="form1Temp">
+	<table class="list2">
+		<tbody>
+			<tr class="head2">
+				<td colspan="5"><%- multicastListening %></td>
+			</tr>
+			<tr>
+				<td class="list2td1"></td>
+				<td class="list2td3"><%- pagingBarge %></td>
+				<td> 
+					<select id="paging_barge" name="paging_barge" class="normal">
+					<option value="0"><%- disabled %></option>
+					<%for(i = 1; i <= 31; i++){%>
+						<option value="<%- i %>"><%- i %></option>
+					<%}%>
+					</select>
+				</td>
+			</tr>
+			<tr>
+				<td class="list2td1"></td>
+				<td class="list2td3"><%- ignoreDND %></td>
+				<td> 
+					<select id="ignore_DND" name="ignore_DND" class="normal">
+					<option value="0"><%- disabled %></option>
+					<%for(i = 1; i <= 31; i++){%>
+						<option value="<%- i %>"><%- i %></option>
+					<%}%>
+					</select>
+				</td>
+			</tr>
+			<tr>
+				<td class="list2td1"></td>
+				<td class="list2td3"><%- pagingPriorityActive %></td>
+				<td> 
+					<select id="paging_priority_active" name="paging_priority_active" class="normal">
+					<option value="0"><%- disabled %></option>
+					<option value="1"><%- enabled %></option>
+					</select>
+				</td>
+			</tr>
+    	                <tr style="font-weight: bold; background-color: #fff;">
+    			                <td style="width: 15%;text-align: center;"><%- index %></td>
+    			                <td style="width: 25%;"><%- listeningAddr %></td>
+    			                <td style="width: 25%;"><%- label %></td>
+    			                <td style="width: 6%;"><%- channel %></td>
+				        <td style="width: 15%;"><%- priority %></td>
+    	                </tr>
+			</br>
+			<% _.each(listenList, function(item, i){ %>	
+		              	<tr>
+				<td class="list4-td-frist-border" style="text-align: center;"><%- i + 1 %></td>			
+				<td>
+				<input type="text" id="listen_address_<%- i %>" name="listen_address_<%- i %>" class="list3-input" maxlength="135">
+				</td>
+				<td>
+				<input type="text" id="listen_lable_<%- i %>" name="listen_lable_<%- i %>" class="list3-input" maxlength="135">
+				</td>
+				<td>
+					<select class="list3-input" id="listen_channel_<%- i %>" name="listen_channel_<%- i %>">
+					<%for(j = 0; j <= 30; j++){%>
+						<option value="<%- j %>"><%- j %></option>
+					<%}%>
+					</select>
+				</td>
+				<td class="list4-td-border"><%- i + 1 %></td>
+				</tr>
+			<% }) %>
+	<!-- paging list-->
+			<tr class="head2">
+				<td colspan="5"><%- pagingListLabel %></td>
+			</tr>
+    	                <tr style="font-weight: bold; background-color: #fff;">
+    			                <td style="width: 15%;text-align: center;"><%- index %></td>
+    			                <td style="width: 25%;"><%- pagingAddr %></td>
+    			                <td style="width: 25%;"><%- label %></td>
+    			                <td style="width: 6%;"><%- channel %></td>
+    	                </tr>
+			</br>
+			<% _.each(pagingList, function(item, i){ %>	
+		              	<tr>
+				<td class="list4-td-frist-border" style="text-align: center;"><%- i+1 %></td>			
+				<td>
+				<input type="text" id="paging_address_<%- i %>" name="paging_address_<%- i %>" class="list3-input" maxlength="135">
+				</td>
+				<td>
+				<input type="text" id="paging_lable_<%- i %>" name="paging_lable_<%- i %>" class="list3-input" maxlength="135">
+				</td>
+				<td>
+					<select class="list3-input" id="paging_channel_<%- i %>" name="paging_channel_<%- i %>">
+					<%for(j = 0; j <= 30; j++){%>
+						<option value="<%- j %>"><%- j %></option>
+					<%}%>
+					</select>
+				</td>
+				</tr>
+			<% }) %>
+		</tbody>
+		
+	</table>
+	
+	<div class="page-button">
+		<a id="save" href="javascript:;"><%- butConfirm %></a> 
+		&nbsp;&nbsp;&nbsp;&nbsp;
+		&nbsp;&nbsp;&nbsp;&nbsp;	
+		<a id="reset" href="javascript:;"><%- butCancel %></a>  
+	</div>
+	</script>
+	</form>
+</div>

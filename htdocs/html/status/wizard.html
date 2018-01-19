@@ -1,0 +1,598 @@
+<script type="text/javascript">
+$(document).ready(function(){
+	TempUtil.render('form1Temp', 'form1', wizardHtml.form1);
+
+	var origialJSON,
+		origialStr,
+		selected = WanType.DHCP,
+		step = 0,
+		networkMode = WanType.DHCP,
+		showText = wizardHtml.common,
+		$form = $('#form1'),
+		$internetAddressType = $('#internetAddressType'),
+		$wanType = $('#wanType'),
+		$staticIpSettings = $('#staticIpSettings'),
+		$staticIpSettingsIPv6 = $('#staticIpSettingsIPv6'),
+		$DHCPStaticDNS = $('#DHCPStaticDNS'),
+		$DHCPStaticDNSIPv6 = $('#DHCPStaticDNSIPv6'),
+		$sipSettings = $('#sipSettings'),
+		$tables = $form.find('table'),
+		$back = $('#back'),
+		$next = $('#next'),
+		$accountActive = $('#accountActive'),
+		$iPAddress = $('#iPAddress');
+
+		var internetPortOptionValue;
+	function renderData(data){
+		Page.setFormFieldValue('internetPortOption', data.internetPortOption);
+		internetPortOptionValue = data.internetPortOption;
+		//ipv4
+		Page.setRadioFieldValue('internetPort', data.internetPort);
+
+		Page.setFormFieldValue('iPAddress', data.iPAddress);
+		Page.setFormFieldValue('subnetMask', data.subnetMask);
+		Page.setFormFieldValue('defaultGateway', data.defaultGateway);
+		Page.setRadioFieldValue('StaticDNSEnable', data.StaticDNSEnable);
+		Page.setFormFieldValue('primaryDNS', data.primaryDNS);
+		Page.setFormFieldValue('secondaryDNS', data.secondaryDNS);
+		//ipv6
+		Page.setRadioFieldValue('internetPortIPv6', data.internetPortIPv6);
+		Page.setFormFieldValue('iPAddressIPv6', data.iPAddressIPv6);
+		Page.setFormFieldValue('networkPrefix', data.networkPrefix);
+		Page.setFormFieldValue('defaultGatewayIPv6', data.defaultGatewayIPv6);
+		Page.setRadioFieldValue('StaticDNSEnableIPv6', data.StaticDNSEnableIPv6);
+		Page.setFormFieldValue('primaryDNSIPv6', data.primaryDNSIPv6);
+		Page.setFormFieldValue('secondaryDNSIPv6', data.secondaryDNSIPv6);
+
+		Page.setFormFieldValue('accountActive', data.accountActive);
+		Page.setFormFieldValue('labelName', data.labelName);
+		Page.setFormFieldValue('displayName', data.displayName);
+		Page.setFormFieldValue('registerName', data.registerName);
+		Page.setFormFieldValue('userName', data.userName);
+		Page.setFormFieldValue('password', data.password);
+		Page.setFormFieldValue('sipServer', data.sipServer);
+		Page.setFormFieldValue('sipServerPort', data.sipServerPort);
+	}
+	
+	function removeByValue(arr, val){
+		var len = arr.length;
+		for(var i = 0; i < len; i++)
+		{
+			if(arr[i] == val)
+			{
+				arr.splice(i, 1);
+				break;
+			}
+		}
+	}
+
+	function initPage(){
+		//ipv4
+		$('#iPAddress').validatebox(commonRules.ipRequired);
+		$('#subnetMask').validatebox(commonRules.ipRequired);
+		$('#defaultGateway').validatebox(commonRules.ipRequired);
+		$('#primaryDNS').validatebox(commonRules.ipFormat);
+		$('#secondaryDNS').validatebox(commonRules.ipFormat);
+		//ipv6
+		$('#iPAddressIPv6').validatebox(commonRules.ipv6Required);
+		$('#defaultGatewayIPv6').validatebox(commonRules.ipv6Required);
+		$('#primaryDNSIPv6').validatebox(commonRules.ipv6Format);
+		$('#secondaryDNSIPv6').validatebox(commonRules.ipv6Format);
+
+		$('#userName').validatebox(commonRules.noEmpty);
+		$('#sipServer').validatebox(commonRules.noEmpty);
+		$('#sipServerPort').numberbox(commonRules.port);
+	}
+
+	Page.postJSON({
+		url: MenuItem.sWizard.get,
+		success: function(data){
+			origialJSON = data;
+			renderData(data);
+			initPage();
+
+			Page.$iframe.show();
+			origialStr = $form.formSerialize();
+			Page.initTips();
+		}
+	});
+
+	function myButtonShow(){
+		$back.css("visibility", "visible");
+	}
+
+	function myButtonHide(){
+		$back.css("visibility", "hidden");
+	}
+
+	var internetPortOptionValue;
+	$('#internetPortOption').change(function(){
+			internetPortOptionValue = this.value;
+		});
+	$next.click(function(){
+		switch(step){
+			case 0:
+				step = 1;
+				$tables.hide();
+				$wanType.show();
+				myButtonShow();
+				/*
+				selected = $('#internetPortOption option:selected').val();
+				if(selected == '1'){
+					
+				}else if(selected == '2'){
+				}else if(selected == '3'){
+				}
+				*/
+				break;
+			case 1:
+				selected = $("input[name='internetPort']:checked").val();
+		//		alert(selected);
+		//		alert(WanType.DHCPStaticDNS);
+				$tables.hide();
+				if(selected == WanType.DHCP){
+					step = 4;
+					networkMode = WanType.DHCP;
+			//		$wanType.hide();
+					$sipSettings.show();
+		//			$accountActive.focus();
+					$next.html(showText.finish);
+				} else if(selected == WanType.DHCPStaticDNS){
+					step = 2;
+					networkMode = WanType.DHCPStaticDNS;
+					$wanType.hide();
+					if(internetPortOptionValue == 1)
+					{
+						$DHCPStaticDNS.show();
+					}
+					else if(internetPortOptionValue == 2)
+					{
+						$DHCPStaticDNSIPv6.show();
+					}
+					else if(internetPortOptionValue == 3)
+					{
+						$DHCPStaticDNS.show();
+						$DHCPStaticDNSIPv6.show();
+					}
+				//	$staticIpSettings.show();
+			//		$iPAddress.focus();
+				}  else if(selected == WanType.StaticIp){
+					step = 2;
+					networkMode = WanType.StaticIp;
+					$wanType.hide();
+					if(internetPortOptionValue == 1)
+					{
+						$staticIpSettings.show();
+						$DHCPStaticDNS.show();
+				//		$iPAddress.focus();
+					}
+					else if(internetPortOptionValue == 2)
+					{
+						$staticIpSettingsIPv6.show();
+						$DHCPStaticDNSIPv6.show();
+		//				$iPAddressIPv6.focus();
+					}
+					else if(internetPortOptionValue == 3)
+					{
+						$staticIpSettings.show();
+						$DHCPStaticDNS.show();
+						$staticIpSettingsIPv6.show();
+						$DHCPStaticDNSIPv6.show();
+		//				$iPAddress.focus();
+					}
+//					$staticIpSettings.show();
+//					$iPAddress.focus();
+				}
+			//	myButtonShow();
+				break;
+			case 2:
+				var valid, validGroups = [];
+
+				
+				if(internetPortOptionValue == 1 || internetPortOptionValue == 3)/*ipv4*/
+				{
+					if(networkMode == WanType.DHCPStaticDNS)
+					{
+						validGroups.push('primaryDNS');
+						validGroups.push('secondaryDNS');
+					}
+					else if(networkMode == WanType.StaticIp)
+					{
+						validGroups.push('iPAddress');
+						validGroups.push('subnetMask');
+						validGroups.push('defaultGateway');
+						validGroups.push('primaryDNS');
+						validGroups.push('secondaryDNS');
+					}
+				}
+				if(internetPortOptionValue == 2 || internetPortOptionValue == 3)/*ipv6*/
+				{
+					if(networkMode == WanType.DHCPStaticDNS)
+					{
+						validGroups.push('primaryDNSIPv6');
+						validGroups.push('secondaryDNSIPv6');
+					}
+					else if(networkMode == WanType.StaticIp)
+					{
+						validGroups.push('iPAddressIPv6');
+						validGroups.push('networkPrefix');
+						validGroups.push('defaultGatewayIPv6');
+						validGroups.push('primaryDNSIPv6');
+						validGroups.push('secondaryDNSIPv6');
+					}
+				}
+
+				/*ipv4*/
+				/*
+				validGroups.push('iPAddress');
+				validGroups.push('subnetMask');
+				validGroups.push('defaultGateway');
+				validGroups.push('StaticDNSEnable');
+				validGroups.push('primaryDNS');
+				validGroups.push('secondaryDNS');
+				*/
+				/*ipv6*/
+				/*
+				validGroups.push('iPAddressIPv6');
+				validGroups.push('networkPrefix');
+				validGroups.push('defaultGatewayIPv6');
+				validGroups.push('StaticDNSEnableIPv6');
+				validGroups.push('primaryDNSIPv6');
+				validGroups.push('secondaryDNSIPv6');
+				*/
+
+
+				valid = ValidHelper.groupsValid(validGroups);
+
+				if(!valid){
+					AlertUtil.invalidVal();
+					return false;
+				}
+				step = 4;
+				$tables.hide();
+			//	$staticIpSettings.hide();
+			//	$DHCPStaticDNS.hide();
+			//	$staticIpSettingsIPv6.hide();
+			//	$DHCPStaticDNSIPv6.hide();
+				$sipSettings.show();
+		//		$accountActive.focus();
+				$next.html(showText.finish);
+				break;
+			case 3:
+				break;
+			case 4:
+				var valid, validGroups = [];
+
+				validGroups.push('userName');
+				validGroups.push('sipServer');
+
+				valid = ValidHelper.groupsValid(validGroups);
+
+				if(!valid){
+					AlertUtil.invalidVal();
+					return false;
+				}
+
+				if(origialStr == $form.formSerialize()){
+					AlertUtil.saveNoChange();
+					return ;
+				}
+			//	$tables.hide();
+				var json = JSON.parmsToJSON($form);
+
+				Page.postJSON({
+					url: MenuItem.sWizard.set,
+					data: JSON.serializeToParms(json),
+					success: function(data){
+						AlertUtil.saveSuccess();
+						origialJSON = json;
+						origialStr = $form.formSerialize();
+					}
+				});
+				break;
+			default:
+				break;
+		}
+	});
+
+	$back.click(function(){
+		switch(step){
+			case 1:
+				$tables.hide();
+				$internetAddressType.show();
+				myButtonHide();
+				step = 0;
+				break;
+			case 2:
+			case 3:
+				$tables.hide();
+				$wanType.show();
+			//	myButtonHide();
+				step = 1;
+				break;
+			case 4:
+				if(selected === WanType.DHCP){
+					step = 1;
+					$tables.hide();
+					$wanType.show();
+				//	$sipSettings.show();
+				//	$accountActive.focus();
+			//		$next.html(showText.finish);
+				} else if(selected === WanType.DHCPStaticDNS){
+					step = 2;
+					$tables.hide();
+					if(internetPortOptionValue == 1)
+					{
+						$DHCPStaticDNS.show();
+					}
+					else if(internetPortOptionValue == 2)
+					{
+						$DHCPStaticDNSIPv6.show();
+					}
+					else if(internetPortOptionValue == 3)
+					{
+						$DHCPStaticDNS.show();
+						$DHCPStaticDNSIPv6.show();
+					}
+		//			$iPAddress.focus();
+				}  else if(selected === WanType.StaticIp){
+					step = 2;
+					$tables.hide();
+					if(internetPortOptionValue == 1)
+					{
+						$staticIpSettings.show();
+						$DHCPStaticDNS.show();
+		//				$iPAddress.focus();
+					}
+					else if(internetPortOptionValue == 2)
+					{
+						$staticIpSettingsIPv6.show();
+						$DHCPStaticDNSIPv6.show();
+		//				$iPAddressIPv6.focus();
+					}
+					else if(internetPortOptionValue == 3)
+					{
+						$staticIpSettings.show();
+						$DHCPStaticDNS.show();
+						$staticIpSettingsIPv6.show();
+						$DHCPStaticDNSIPv6.show();
+				//		$iPAddress.focus();
+					}
+				}
+				myButtonShow();
+				$next.html(showText.next);
+/*
+				if(selected === WanType.DHCP){
+					$tables.hide();
+					$wanType.show();
+					myButtonHide();
+					step = 1;
+				} else if(selected === WanType.StaticIp){
+					step = 1;
+					$tables.hide();
+					$staticIpSettings.show();
+				//	$iPAddress.focus();
+				}
+				$next.html(showText.next);
+				*/
+				break;
+			default:
+				break;
+		}
+	});
+});
+</script>
+<div class="detail_box">
+	<form id="form1">
+	<script type="text/template" id="form1Temp">
+	<table class="list2" id="internetAddressType">
+		<tbody>
+			<tr class="head2">
+				<td colspan="4" ><%- networkType %></td>
+				<td style="text-ident: 0;">
+					<select id="internetPortOption" name="internetPortOption" class="normal">
+						<option value="1">IPv4</option>
+						<option value="2">IPv6</option>
+						<option value="3">IPv4 & IPv6</option>
+					</select>
+				</td>
+			</tr>
+		</tbody>
+	</table>
+	<table class="list2" id="wanType" style="display:none;">
+		<tbody>
+			<tr>
+				<td colspan="4" class="head2"><%- InternetPort %></td>
+			</tr>
+			<tr>
+				<td class="list2td1"></td>
+				<td>
+					<input type="radio" id="labelDHCP" name="internetPort" value="DHCP" class="radio" checked="checked"/>
+					&nbsp;<label for="labelDHCP"><%- dhcp %></label>
+					<span class="my-tooltips" title="<%- tips.dhcp %>">&nbsp;</span>
+				</td>
+			</tr>
+			<tr>
+				<td class="list2td1"></td>
+				<td>
+					<input type="radio" id="labelDHCPStaticDNS" name="internetPort" value="DHCPStaticDNS" class="radio" checked="checked"/>
+					&nbsp;<label for="labelDHCPStaticDNS"><%- dhcpStaticDNS %></label>
+					<span class="my-tooltips" title="<%- tips.dhcp %>">&nbsp;</span>
+				</td>
+			</tr>
+			<tr>
+				<td class="list2td1"></td>
+				<td>
+					<input type="radio" id="labelStaticIPAddress" name="internetPort" value="staticIPAddress" class="radio"/>
+					&nbsp;<label for="labelStaticIPAddress"><%- staticIp %></label>
+					<span class="my-tooltips" title="<%- tips.staticIp %>">&nbsp;</span> 
+				</td>
+			</tr>
+		</tbody>
+	</table>
+	<!-- static ip setting-->
+	<table class="list2" id="staticIpSettings" style="display:none;">
+		<tbody>
+			<tr>
+				<td colspan="4" class="head2"><%- staticIpSettings %></td>
+			</tr>
+			<tr>
+				<td class="list2td1"></td>
+				<td class="list2td2"></td>
+				<td class="list2td3"><span class="span-required">*</span><%- ip %></td>
+				<td><input type="text" class="normal" id="iPAddress" name="iPAddress" maxlength="15"/></td>
+			</tr>
+			<tr>
+				<td class="list2td1"></td>
+				<td class="list2td2"></td>
+				<td class="list2td3"><span class="span-required">*</span><%- subnetMask %></td>
+				<td><input type="text" class="normal" id="subnetMask" name="subnetMask" maxlength="15"/></td>
+			</tr>
+			<tr>
+				<td class="list2td1"></td>
+				<td class="list2td2"></td>
+				<td class="list2td3"><span class="span-required">*</span><%- defaultGateway %></td>
+				<td><input type="text" class="normal" id="defaultGateway" name="defaultGateway" maxlength="15"/></td>
+			</tr>
+		</tbody>
+	</table>
+	<table class="list2" id="DHCPStaticDNS" style="display:none;">
+		<tbody>
+			<tr>
+				<td colspan="4" class="head2"><%- StaticDNSEnable %></td>
+			</tr>
+			<tr>
+				<td class="list2td1"></td>
+				<td class="list2td2"></td>
+				<td class="list2td3"><%- primaryDNS %></td>
+				<td><input type="text" class="normal" id="primaryDNS" name="primaryDNS" maxlength="15"/></td>
+			</tr>
+			<tr>
+				<td class="list2td1"></td>
+				<td class="list2td2"></td>
+				<td class="list2td3"><%- secondaryDNS %></td>
+				<td><input type="text" class="normal" id="secondaryDNS" name="secondaryDNS" maxlength="15"/></td>
+			</tr>
+		</tbody>
+	</table>
+	<!-- static ip setting ipv6-->
+	<table class="list2" id="staticIpSettingsIPv6" style="display:none;">
+		<tbody>
+			<tr>
+				<td colspan="4" class="head2"><%- staticIpSettingsIPv6 %></td>
+			</tr>
+			<tr>
+				<td class="list2td1"></td>
+				<td class="list2td2"></td>
+				<td class="list2td3"><span class="span-required">*</span><%- ip %></td>
+				<td><input type="text" class="normal" id="iPAddressIPv6" name="iPAddressIPv6" maxlength="46"/></td>
+			</tr>
+			<tr>
+				<td class="list2td1"></td>
+				<td class="list2td2"></td>
+				<td class="list2td3"><span class="span-required">*</span><%- IPv6Prefix %></td>
+				<td><input type="text" class="normal" id="networkPrefix" name="networkPrefix" maxlength="46"/></td>
+			</tr>
+			<tr>
+				<td class="list2td1"></td>
+				<td class="list2td2"></td>
+				<td class="list2td3"><span class="span-required">*</span><%- defaultGateway %></td>
+				<td><input type="text" class="normal" id="defaultGatewayIPv6" name="defaultGatewayIPv6" maxlength="46"/></td>
+			</tr>
+		</tbody>
+	</table>
+	<table class="list2" id="DHCPStaticDNSIPv6" style="display:none;">
+		<tbody>
+			<tr>
+				<td colspan="4" class="head2"><%- StaticDNSEnableIPv6 %></td>
+			</tr>
+			<tr>
+				<td class="list2td1"></td>
+				<td class="list2td2"></td>
+				<td class="list2td3"><%- primaryDNS %></td>
+				<td><input type="text" class="normal" id="primaryDNSIPv6" name="primaryDNSIPv6" maxlength="46"/></td>
+			</tr>
+			<tr>
+				<td class="list2td1"></td>
+				<td class="list2td2"></td>
+				<td class="list2td3"><%- secondaryDNS %></td>
+				<td><input type="text" class="normal" id="secondaryDNSIPv6" name="secondaryDNSIPv6" maxlength="46"/></td>
+			</tr>
+		</tbody>
+	</table>
+	<!-- sip Setting -->
+	<table class="list2" id="sipSettings" style="display:none;">
+		<tbody>
+			<tr>
+				<td colspan="4" class="head2"><%- sipSettings %></td>
+			</tr>
+			<tr>
+				<td class="list2td1"></td>
+				<td class="list2td3"><%- accountActive %></td>
+				<td>
+					<select id="accountActive" name="accountActive" class="normal">
+						<option value="0"><%- disable %></option>
+						<option value="1"><%- enable %></option>
+					</select>
+				</td>
+			</tr>
+			<tr>
+				<td class="list2td1"></td>
+				<td class="list2td3"><%- labelName %></td>
+				<td>
+					<input type="text" class="normal" id="labelName" name="labelName" maxlength="99"/>
+					<span class="my-tooltips" title="<%- tips.labelName %>">&nbsp;</span>
+				</td>
+			</tr>
+			<tr>
+				<td class="list2td1"></td>
+				<td class="list2td3"><%- displayName %></td>
+				<td>
+					<input type="text" class="normal" id="displayName" name="displayName" maxlength="99"/>
+					<span class="my-tooltips" title="<%- tips.displayName %>">&nbsp;</span>
+				</td>
+			</tr>
+			<tr>
+				<td class="list2td1"></td>
+				<td class="list2td3"><%- registerName %></td>
+				<td>
+					<input type="text" class="normal" id="registerName" name="registerName" maxlength="99"/>
+					<span class="my-tooltips" title="<%- tips.registerName %>">&nbsp;</span>
+				</td>
+			</tr>
+			<tr>
+				<td class="list2td1"></td>
+				<td class="list2td3"><span class="span-required">*</span><%- userName %></td>
+				<td>
+					<input type="text" class="normal" id="userName" name="userName" maxlength="99"/>
+					<span class="my-tooltips" title="<%- tips.userName %>">&nbsp;</span>
+				</td>
+			</tr>
+			<tr>
+				<td class="list2td1"></td>
+				<td class="list2td3"><%- password %></td>
+				<td>
+					<input type="password" class="normal" id="password" name="password" maxlength="99"/>
+					<span class="my-tooltips" title="<%- tips.password %>">&nbsp;</span>
+				</td>
+			</tr>
+			<tr>
+				<td class="list2td1"></td>
+				<td class="list2td3"><span class="span-required">*</span><%- sipServer %></td>
+				<td>
+					<input type="text" class="normal" id="sipServer" name="sipServer" maxlength="99"/>
+					&nbsp;<%- sipServerPort %>&nbsp;<input type="text"  class="port" id="sipServerPort" name="sipServerPort" />
+					<span class="my-tooltips" title="<%- tips.sipServer %>">&nbsp;</span>
+				</td>
+			</tr>
+		</tbody>
+	</table>
+	<div class="page-button">
+		<button type="button" style="visibility: hidden;" id="back"><%- back %></button>
+		&nbsp;&nbsp;&nbsp;&nbsp;
+		&nbsp;&nbsp;&nbsp;&nbsp;
+		<button type="button" id="next"><%- next %></button>  
+	</div>
+	</script>
+	</form>
+</div>

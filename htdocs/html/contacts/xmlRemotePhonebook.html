@@ -1,0 +1,173 @@
+<script type="text/javascript">
+$(document).ready(function(){
+	TempUtil.render('form1Temp', 'form1', XMLPhonebookHtml.form1);
+	var origialJSON,
+		origialStr,
+		$form = $('#form1');
+
+	function renderData(data){
+		Page.setFormFieldValue('search_remote_phonebook_name', data.search_remote_phonebook_name);
+		Page.setFormFieldValue('search_flash_time', data.search_flash_time);
+
+		Page.setFormFieldValue('phonebook1_display_name', data.phonebook1_display_name);
+		Page.setFormFieldValue('phonebook1_remote_url', data.phonebook1_remote_url);
+
+		Page.setFormFieldValue('phonebook2_display_name', data.phonebook2_display_name);
+		Page.setFormFieldValue('phonebook2_remote_url', data.phonebook2_remote_url);
+		
+		Page.setFormFieldValue('phonebook3_display_name', data.phonebook3_display_name);
+		Page.setFormFieldValue('phonebook3_remote_url', data.phonebook3_remote_url);
+		
+		Page.setFormFieldValue('phonebook4_display_name', data.phonebook4_display_name);
+		Page.setFormFieldValue('phonebook4_remote_url', data.phonebook4_remote_url);
+		
+		Page.setFormFieldValue('phonebook5_display_name', data.phonebook5_display_name);
+		Page.setFormFieldValue('phonebook5_remote_url', data.phonebook5_remote_url);
+	}
+
+	function initPage(){
+		$('#search_flash_time').numberbox({
+			min: 0,
+			max: 65535
+		});
+
+		$('#save').linkbutton();  
+		$('#reset').linkbutton(); 
+	}
+
+	Page.postJSON({
+		url: MenuItem.cXMLPhonebook.get,
+		success: function(data){
+			origialJSON = data;
+
+			renderData(data);
+			initPage();
+
+			Page.$iframe.show();
+			origialStr = $form.formSerialize();
+			Page.initTips();
+		}
+	});
+
+	$('#save').click(function(){
+		if(ValidHelper.invalid($form)){
+			AlertUtil.invalidVal();
+			return false;
+		}
+
+		if(origialStr == $form.formSerialize()){
+			AlertUtil.saveNoChange();
+			return false;
+		}
+
+		var json = JSON.parmsToJSON($form);
+
+		Page.postJSON({
+			url: MenuItem.cXMLPhonebook.set,
+			data: JSON.serializeToParms(json),
+			success: function(data){
+				AlertUtil.saveSuccess();
+				origialJSON = json;
+				origialStr = $form.formSerialize();
+			}
+		});
+	});
+
+	var $inputNums = null;
+	$('#reset').click(function(){
+		if(origialJSON){
+			renderData(origialJSON);
+			$inputNums = ValidHelper.numHelper($inputNums);
+		}
+	});
+});
+</script>
+<div class="detail_box">
+	<form id="form1">
+	<script type="text/template" id="form1Temp">
+	<table class="list2">
+		<tbody>
+		    <tr class="head3">
+				<td style="width: 8%;" class="list3-td1"><%- index %></td>
+				<td style="width: 60%;" class="td-border list3-td2"><%- remote_url %></td>
+				<td style="width: 52%;" class="td-border"><%- display_name %></td>
+			</tr>
+			<tr>
+			    <td style="text-align: center;">1</td>
+			    <td >
+			        <input type="text" class="list3-input" id="phonebook1_remote_url" name="phonebook1_remote_url" maxlength="511"/>
+			    </td>
+			    <td >
+			        <input type="text" class="list3-input" id="phonebook1_display_name" name="phonebook1_display_name" maxlength="99"/>
+			    </td>
+			</tr>
+            <tr>
+			    <td style="text-align: center;">2</td>
+			    <td >
+			        <input type="text" class="list3-input" id="phonebook2_remote_url" name="phonebook2_remote_url" maxlength="511"/>
+			    </td>
+			    <td >
+			        <input type="text" class="list3-input" id="phonebook2_display_name" name="phonebook2_display_name" maxlength="99"/>
+			    </td>
+			</tr>
+            <tr>
+			    <td style="text-align: center;">3</td>
+			    <td >
+			        <input type="text" class="list3-input" id="phonebook3_remote_url" name="phonebook3_remote_url" maxlength="511"/>
+			    </td>
+			    <td >
+			        <input type="text" class="list3-input" id="phonebook3_display_name" name="phonebook3_display_name" maxlength="99"/>
+			    </td>
+			</tr>
+            <tr>
+			    <td style="text-align: center;">4</td>
+			    <td >
+			        <input type="text" class="list3-input" id="phonebook4_remote_url" name="phonebook4_remote_url" maxlength="511"/>
+			    </td>
+			    <td >
+			        <input type="text" class="list3-input" id="phonebook4_display_name" name="phonebook4_display_name" maxlength="99"/>
+			    </td>
+			</tr>
+            <tr>
+			    <td style="text-align: center;">5</td>
+			    <td >
+			        <input type="text" class="list3-input" id="phonebook5_remote_url" name="phonebook5_remote_url" maxlength="511"/>
+			    </td>
+			    <td >
+			        <input type="text" class="list3-input" id="phonebook5_display_name" name="phonebook5_display_name" maxlength="99"/>
+			    </td>
+			</tr>
+		</tbody>
+        <tr class="head2">
+				<td colspan="3">
+					<%- xml_remote_phonebook %>
+				</td>
+			</tr>
+        <tr>
+				<td class="list2td1"></td>
+				<td class="list2td2"><%- SRemoteName %><span class="my-tooltips" title="<%- tips.SRemoteName %>">&nbsp;</span></td>
+				<td>
+					<select id="search_remote_phonebook_name" name="search_remote_phonebook_name" class="normal">
+						<option value="0"><%- disable %></option>
+						<option value="1"><%- enable %></option>
+					</select>
+				</td>
+		</tr>
+        <tr>
+				<td class="list2td1"></td>
+				<td class="list2td2"><%- SRemoteNameFlashTime %><span class="my-tooltips" title="<%- tips.SRemoteNameFlashTime %>">&nbsp;</span></td>
+				<td>
+					<input type="text" class="normal" id="search_flash_time" name="search_flash_time"/>
+				</td>
+		</tr>		
+	</table>
+	   
+	<div class="page-button">
+		<a id="save" href="javascript:;"><%- butConfirm %></a> 
+		&nbsp;&nbsp;&nbsp;&nbsp;
+		&nbsp;&nbsp;&nbsp;&nbsp;	
+		<a id="reset" href="javascript:;"><%- butCancel %></a>  
+	</div>
+	</script>
+	</form>
+</div>

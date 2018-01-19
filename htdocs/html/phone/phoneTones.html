@@ -1,0 +1,211 @@
+<script type="text/javascript">
+$(document).ready(function(){
+	TempUtil.render('form1Temp', 'form1', phoneTonesHtml.form1);
+	
+	var origialJSON,
+		origialStr,
+		$form = $('#form1');
+	
+	function renderData(data){
+	Page.setFormFieldValue('selectCountry', data.selectCountry);
+	Page.setFormFieldValue('dial', data.dial);
+	Page.setFormFieldValue('ringBack', data.ringBack);
+	Page.setFormFieldValue('busy', data.busy);
+	Page.setFormFieldValue('congestion', data.congestion);
+	Page.setFormFieldValue('callWaiting', data.callWaiting);
+	Page.setFormFieldValue('dialRecall', data.dialRecall);
+	Page.setFormFieldValue('info', data.info);
+	Page.setFormFieldValue('stutter', data.stutter);
+	Page.setFormFieldValue('message', data.message);
+	Page.setFormFieldValue('autoAnswer', data.autoAnswer);
+	}
+	
+	function initPage(){
+		$('#selectCountry').change();
+		$('#save').linkbutton();  
+		$('#reset').linkbutton(); 
+	}
+	
+	Page.postJSON({
+		url: MenuItem.pTones.get,
+		success: function(data){
+			origialJSON = data;
+			renderData(data);
+			initPage();
+			
+			Page.$iframe.show();
+			origialStr = $form.formSerialize();
+			Page.initTips();
+		}
+	});
+	
+	var $group1;
+	$('#selectCountry').change(function(){
+		var selected = this.value;
+		if(!$group1){
+			$group1 = $('#form1 .group1');
+		}
+
+		//alert(selected);
+		if(selected == 0){
+			$group1.myEnable(true);
+		} else{
+			$group1.myEnable(false);
+		} 
+	});
+
+	$('#save').click(function(){
+		if(ValidHelper.invalid($form)){
+			AlertUtil.invalidVal();
+			return false;
+		}
+		if(origialStr == $form.formSerialize()){
+			AlertUtil.saveNoChange();
+			return false;
+		}
+		
+		var json = JSON.parmsToJSON($form);
+		
+		Page.postJSON({
+			url: MenuItem.pTones.set,
+			data: JSON.serializeToParms(json),
+			success: function(data){
+				AlertUtil.saveSuccess(function(){
+					if(origialJSON.loginTimeout != json.loginTimeout){
+						Page.loginTimeout = parseInt(json.loginTimeout, 10) || 5;
+						clearTimeout(Page.intervalId);
+						Page.setPageTimeoutLogout(Page.loginTimeout);
+					} 
+					origialJSON = json;
+					origialStr = $form.formSerialize();	
+				});
+			}
+		});
+	});
+	
+	var $inputNums = null;
+	$('#reset').click(function(){
+		if(origialJSON){
+			renderData(origialJSON);
+			$inputNums = ValidHelper.numHelper($inputNums);
+		}
+	});
+	
+	$('#form1').delegate('td.title', 'click', function(){
+		var $this = $(this),
+			className = $this.prop('class');
+		
+		if(className.indexOf('add-hide') > -1){
+			$this.removeClass('add-hide').addClass('reduce-show');
+			$this.parent().next().show();
+		} else {
+			$this.removeClass('reduce-show').addClass('add-hide');
+			$this.parent().next().hide();
+		}
+	});
+});
+</script>
+<div class="detail_box">
+	<form id="form1">
+	<script type="text/template" id="form1Temp">
+	<table class="list2">
+		<tbody>
+			<tr class="head2">
+				<td colspan="2"><%- selectCountry %></td>
+				<td style="text-indent: 0;">
+					<select id="selectCountry" name="selectCountry" class="normal">
+						<option value="0"><%- custom %></option>
+						<option value="1"><%- australia %></option>
+						<option value="2"><%- austria %></option>
+						<option value="3"><%- brazil %></option>
+						<option value="4"><%- belgium %></option>
+						<option value="5"><%- chile %></option>
+						<option value="6"><%- china %></option>
+						<option value="7"><%- czech %></option>
+						<option value="8"><%- czechETSI %></option>
+						<option value="9"><%- denmark %></option>
+						<option value="10"><%- finland %></option>
+						<option value="11"><%- france %></option>
+						<option value="12"><%- germany %></option>
+						<option value="13"><%- greatBritain %></option>
+						<option value="14"><%- greece %></option>
+						<option value="15"><%- hungary %></option>
+						<option value="16"><%- lithuania %></option>
+						<option value="17"><%- india %></option>
+						<option value="18"><%- italy %></option>
+						<option value="19"><%- japan %></option>
+						<option value="20"><%- mexico %></option>
+						<option value="21"><%- newZealand %></option>
+						<option value="22"><%- netherlands %></option>
+						<option value="23"><%- norway %></option>
+						<option value="24"><%- portugal %></option>
+						<option value="25"><%- spain %></option>
+						<option value="26"><%- switzerland %></option>
+						<option value="27"><%- sweden %></option>
+						<option value="28"><%- russia %></option>
+						<option value="29"><%- unitedStates %></option>
+					</select>
+				</td>
+			</tr>	
+			<tr>
+				<td class="list2td1"></td>
+				<td class="list2td3" for="dial"><%- dial %></td>
+				<td><input type="text" class="normal group1" id="dial" name="dial" maxlength="127"/></td>
+			</tr>
+			<tr>
+				<td class="list2td1"></td>
+				<td class="list2td3" for="ringBack"><%- ringBack %></td>
+				<td><input type="text" class="normal group1" id="ringBack" name="ringBack" maxlength="127"/></td>
+			</tr>
+			<tr>
+				<td class="list2td1"></td>
+				<td class="list2td3" for="busy"><%- busy %></td>
+				<td><input type="text" class="normal group1" id="busy" name="busy" maxlength="127"/></td>
+			</tr>
+			<tr>
+				<td class="list2td1"></td>
+				<td class="list2td3" for="congestion"><%- congestion %></td>
+				<td><input type="text" class="normal group1" id="congestion" name="congestion" maxlength="127"/></td>
+			</tr>
+			<tr>
+				<td class="list2td1"></td>
+				<td class="list2td3" for="callWaiting"><%- callWaiting %></td>
+				<td><input type="text" class="normal group1" id="callWaiting" name="callWaiting" maxlength="127"/></td>
+			</tr>
+			<tr>
+				<td class="list2td1"></td>
+				<td class="list2td3" for="dialRecall"><%- dialRecall %></td>
+				<td><input type="text" class="normal group1" id="dialRecall" name="dialRecall" maxlength="127"/></td>
+			</tr>
+			<tr>
+				<td class="list2td1"></td>
+				<td class="list2td3" for="info"><%- info %></td>
+				<td><input type="text" class="normal group1" id="info" name="info" maxlength="127"/></td>
+			</tr>
+			<tr>
+				<td class="list2td1"></td>
+				<td class="list2td3" for="stutter"><%- stutter %></td>
+				<td><input type="text" class="normal group1" id="stutter" name="stutter" maxlength="127"/></td>
+			</tr>
+			<tr>
+				<td class="list2td1"></td>
+				<td class="list2td3" for="message"><%- message %></td>
+				<td><input type="text" class="normal group1" id="message" name="message" maxlength="127"/></td>
+			</tr>
+			<tr>
+				<td class="list2td1"></td>
+				<td class="list2td3" for="autoAnswer"><%- autoAnswer %></td>
+				<td><input type="text" class="normal group1" id="autoAnswer" name="autoAnswer" maxlength="127"/></td>
+			</tr>
+		</tbody>
+	</table>
+
+	<div class="page-button">
+		<a id="save" href="javascript:;"><%- butConfirm %></a> 
+		&nbsp;&nbsp;&nbsp;&nbsp;
+		&nbsp;&nbsp;&nbsp;&nbsp;	
+		<a id="reset" href="javascript:;"><%- butCancel %></a>  
+	</div>
+	</script>
+	</form>
+</div>

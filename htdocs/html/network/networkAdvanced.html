@@ -1,0 +1,626 @@
+<script type="text/javascript">
+$(document).ready(function(){
+	TempUtil.render('form1Temp', 'form1', networkAdvancedHtml.form1);
+
+	var origialJSON,
+		origialStr,
+		$form = $('#form1'),
+		$group1 = $('#form1 .group1'),
+		$group2 = $('#form1 .group2'),
+		$group3 = $('#form1 .group3'),
+		$group4 = $('#form1 .group4'),
+		$group5 = $('#form1 .group5'),
+		$group6 = $('#form1 .group6'),
+		$group7 = $('#form1 .group7'),
+		$group8 = $('#form1 .group8'),
+		$group9 = $('#form1 .group9'),
+		$group10 = $('#form1 .group10');
+;
+
+	function renderData(data){
+        Page.setFormFieldValue('lldp_enable', data.lldp_enable);
+		Page.setFormFieldValue('lldp_package_interval', data.lldp_package_interval);
+		Page.setFormFieldValue('cdp_enable', data.cdp_enable);
+		Page.setFormFieldValue('cdp_package_interval', data.cdp_package_interval);
+
+		Page.setFormFieldValue('vlanActive', data.vlanActive);
+		Page.setFormFieldValue('vlanVoiceVid', data.vlanVoiceVid);
+		Page.setFormFieldValue('vlanVoicePriority', data.vlanVoicePriority);
+		Page.setFormFieldValue('vlanPcActive', data.vlanPcActive);
+		Page.setFormFieldValue('vlanDataVid', data.vlanDataVid);
+		Page.setFormFieldValue('vlanDataPriority', data.vlanDataPriority);
+
+		Page.setFormFieldValue('wanPortLink', data.wanPortLink);
+		Page.setFormFieldValue('pcPortLink', data.pcPortLink);
+
+		Page.setFormFieldValue('vpnActive', data.vpnActive);
+		Page.setFormFieldValue('slaccEnable', data.slaccEnable);
+
+		Page.setFormFieldValue('voiceQos', data.voiceQos);
+		Page.setFormFieldValue('sipQos', data.sipQos);
+
+		Page.setFormFieldValue('maxRTPPort', data.maxRTPPort);
+		Page.setFormFieldValue('minRTPPort', data.minRTPPort);
+
+		Page.setFormFieldValue('httpPort', data.httpPort);
+		Page.setFormFieldValue('httpsPort', data.httpsPort);
+		Page.setFormFieldValue('webServerType', data.webServerType);
+
+		Page.setFormFieldValue('SpanToPCPort', data.SpanToPCPort);
+
+		Page.setFormFieldValue('mode', data.mode);
+		Page.setFormFieldValue('anonymous_identity', data.anonymous_identity);
+		Page.setFormFieldValue('identity', data.identity);
+		Page.setFormFieldValue('md5', data.md5);
+	}
+
+	function initPage(){
+		var num_1_3600 = {
+			required:false,   
+			min: 1,
+			max: 3600
+		},
+		num_0_4094 = {
+			required:true,   
+			min: 0,
+			max: 4094
+		},
+		num_0_63 = {
+			required:true,
+			min: 0,
+			max: 63
+		},
+		num_2_65534 = {
+			required:true,
+			min: 2,
+			max: 65534
+		};
+		$('#lldp_package_interval').numberbox(num_1_3600);
+		$('#cdp_package_interval').numberbox(num_1_3600);
+
+		$('#vlanVoiceVid').numberbox(num_0_4094);
+		$('#vlanDataVid').numberbox(num_0_4094);
+
+		$('#voiceQos').numberbox(num_0_63);
+		$('#sipQos').numberbox(num_0_63);
+
+		$('#maxRTPPort').numberbox(num_2_65534);
+		$('#minRTPPort').numberbox(num_2_65534);
+
+		$('#httpPort').numberbox(commonRules.port);
+		$('#httpsPort').numberbox(commonRules.port);
+
+		if(Page.username === UserName.user)
+		{
+			$group1.hide();
+			$group2.hide();
+			$group3.hide();
+
+			$group5.hide();
+			$group6.hide();
+			$group7.hide();
+			$group8.hide();
+			$group9.hide();
+			$group10.hide();
+		}
+		$('#save').linkbutton();  
+		$('#reset').linkbutton(); 
+	}
+
+	Page.postJSON({
+		url: MenuItem.nAdvanced.get,
+		success: function(data){
+			origialJSON = data;
+
+			renderData(data);
+			initPage();
+
+			Page.$iframe.show();
+			origialStr = $form.formSerialize();
+			Page.initTips();
+		}
+	});
+
+	function checkUrlChange(json){
+		if(json.httpPort != origialJSON.httpPort 
+		   || json.httpsPort != origialJSON.httpsPort
+		   || json.webServerType != origialJSON.webServerType){
+
+			return true;
+		} else {
+			return false;
+		}
+	}
+
+	function VPNConfigUploadCallback(){
+		AlertUtil.alertMsg(uploadCommon.uploadSuccess, function(){});
+    }
+	var VPNConfig = $('#VPNConfig')[0];
+	$('#uploadVPNConfig').click(function(){
+		IframeUtil.jsonData = null;
+		VPNConfig.contentWindow.doVPNConfigUpload(VPNConfigUploadCallback);
+    });
+
+	function CertUploadCallback(){
+		AlertUtil.alertMsg(uploadCommon.uploadSuccess, function(){});
+    }
+	var X_802_1X_CA_Cert = $('#X_802_1X_CA_Cert')[0];
+	$('#upload_802_1X_CA_Cert').click(function(){
+		IframeUtil.jsonData = null;
+		X_802_1X_CA_Cert.contentWindow.doCertUpload(CertUploadCallback);
+    });
+
+	var X_802_1X_Device_Cert = $('#X_802_1X_Device_Cert')[0];
+	$('#upload_802_1X_Device_Cert').click(function(){
+		IframeUtil.jsonData = null;
+		X_802_1X_Device_Cert.contentWindow.doCertUpload(CertUploadCallback);
+    });
+
+	$('#save').click(function(){
+		if(ValidHelper.invalid($form)){
+			AlertUtil.invalidVal();
+			return false;
+		}
+		if(origialStr == $form.formSerialize()){
+			AlertUtil.saveNoChange();
+			return ;
+		}
+
+		var json = JSON.parmsToJSON($form);
+
+		Page.postJSON({
+			url: MenuItem.nAdvanced.set,
+			data: JSON.serializeToParms(json),
+			success: function(data){
+				if(checkUrlChange(json)){
+					if(json.webServerType === WebServerType.Disable){
+						AlertUtil.alertMsg(alertMsg.webServicesDisable);
+					} else if(json.webServerType === WebServerType.Https){
+						AlertUtil.saveSuccess(function(){
+							var urls = [];
+							urls.push('https://');
+							urls.push(location.hostname);
+							urls.push(':' + json.httpsPort);
+							location.assign(urls.join(''));
+						});
+					} else {
+						AlertUtil.saveSuccess(function(){
+							var urls = [];
+							urls.push('http://');
+							urls.push(location.hostname);
+							urls.push(':' + json.httpPort);
+							location.assign(urls.join(''));
+						});
+					}
+				} else {
+					AlertUtil.saveSuccess();
+				}
+
+				origialJSON = json;
+				origialStr = $form.formSerialize();
+
+			}
+		});
+	});
+
+	var $inputNums = null;
+	$('#reset').click(function(){
+		if(origialJSON){
+			renderData(origialJSON);
+			$inputNums = ValidHelper.numHelper($inputNums);
+		}
+	});
+});
+</script>
+<div class="detail_box">
+	<form id="form1">
+	<script type="text/template" id="form1Temp">
+	<table class="list2">
+		<tbody>
+			<!-- LLDP -->
+			<tr class="normal group1">
+				<td colspan="3" class="head2">
+					<%- lldp %>
+					<span class="my-tooltips" title="<%- tips.lldp %>">&nbsp;</span>
+				</td>
+			</tr>
+			<tr class="normal group1">
+				<td class="list2td1"></td>
+				<td class="list2td3"><%- active %></td>
+				<td>
+					<select id="lldp_enable" name="lldp_enable" class="normal">
+						<option value="0"><%- disable %></option>
+						<option value="1"><%- enable %></option>
+					</select>
+				</td>
+			</tr>
+			<tr class="normal group1">
+				<td class="list2td1"></td>
+				<td class="list2td3"><%- package_interval %></td>
+				<td>
+					<input type="text" class="normal" id="lldp_package_interval" name="lldp_package_interval" maxlength="4"/>
+				</td>
+			</tr>
+
+			<!-- CDP -->
+			<tr class="normal group2">
+				<td colspan="3" class="head2">
+					<%- cdp %>
+					<span class="my-tooltips" title="<%- tips.cdp %>">&nbsp;</span>
+				</td>
+			</tr>
+			<tr class="normal group2">
+				<td class="list2td1"></td>
+				<td class="list2td3"><%- active %></td>
+				<td>
+					<select id="cdp_enable" name="cdp_enable" class="normal">
+						<option value="0"><%- disable %></option>
+						<option value="1"><%- enable %></option>
+					</select>
+				</td>
+			</tr>
+			<tr class="normal group2">
+				<td class="list2td1"></td>
+				<td class="list2td3"><%- package_interval %></td>
+				<td>
+					<input type="text" class="normal" id="cdp_package_interval" name="cdp_package_interval" maxlength="4"/>
+				</td>
+			</tr>
+
+			<!-- VLAN -->
+			<tr class="normal group3">
+				<td colspan="3" class="head2">
+					<%- vlan %>
+					<span class="my-tooltips" title="<%- tips.vlan %>">&nbsp;</span>
+				</td>
+			</tr>
+			<tr class="normal group3">
+				<td class="list2td1"><%- vlanLan %></td>
+				<td class="list2td3"><%- active %></td>
+				<td>
+					<select id="vlanActive" name="vlanActive" class="normal">
+						<option value="0"><%- disable %></option>
+						<option value="1"><%- enable %></option>
+					</select>
+				</td>
+			</tr>
+			<tr class="normal group3">
+				<td class="list2td1"></td>
+				<td class="list2td3"><%- vlanVoiceVid %></td>
+				<td>
+					<input type="text" class="normal" id="vlanVoiceVid" name="vlanVoiceVid"/>(0~4094)
+				</td>
+			</tr>
+			<tr class="normal group3">
+				<td class="list2td1"></td>
+				<td class="list2td3"><%- vlanVoicePriority %></td>
+				<td>
+					<select class="normal" id="vlanVoicePriority" name="vlanVoicePriority">
+						<option value="0">0</option>
+						<option value="1">1</option>
+						<option value="2">2</option>
+						<option value="3">3</option>
+						<option value="4">4</option>
+						<option value="5">5</option>
+						<option value="6">6</option>
+						<option value="7">7</option>
+					</select>
+				</td>
+			</tr>
+			<tr class="normal group3">
+				<td class="list2td1"><%- vlanPc %></td>
+				<td class="list2td3"><%- vlanPcActive %></td>
+				<td>
+					<select id="vlanPcActive" name="vlanPcActive" class="normal">
+						<option value="0"><%- disable %></option>
+						<option value="1"><%- enable %></option>
+					</select>
+				</td>
+			</tr>
+			<tr class="normal group3">
+				<td class="list2td1"></td>
+				<td class="list2td3"><%- vlanDataVid %></td>
+				<td>
+					<input type="text" class="normal" id="vlanDataVid" name="vlanDataVid"/>(0~4094)
+				</td>
+			</tr>
+			<tr class="normal group3">
+				<td class="list2td1"></td>
+				<td class="list2td3"><%- vlanDataPriority %></td>
+				<td>
+					<select class="normal" id="vlanDataPriority" name="vlanDataPriority">
+						<option value="0">0</option>
+						<option value="1">1</option>
+						<option value="2">2</option>
+						<option value="3">3</option>
+						<option value="4">4</option>
+						<option value="5">5</option>
+						<option value="6">6</option>
+						<option value="7">7</option>
+					</select>
+				</td>
+			</tr>
+
+			<!-- Port Link -->
+			<tr class="normal group4">
+				<td colspan="3" class="head2">
+					<%- portLink %>
+					<span class="my-tooltips" title="<%- tips.portLink %>">&nbsp;</span>
+				</td>
+			</tr>
+			<tr class="normal group4">
+				<td class="list2td1"></td>
+				<td class="list2td3"><%- wanPortLink %></td>
+				<td>
+					<select class="normal" id="wanPortLink" name="wanPortLink">
+						<option value="0"><%- wanPortLinkOption0 %></option>
+						<option value="1"><%- wanPortLinkOption1 %></option>
+						<option value="2"><%- wanPortLinkOption2 %></option>
+						<% if(Page.productIdentification != productIdentification.CT11) { %>
+						<option value="6"><%- wanPortLinkOption6 %></option>
+						<% } %>
+						<option value="3"><%- wanPortLinkOption3 %></option>
+						<option value="4"><%- wanPortLinkOption4 %></option>
+						<!--<option value="5"><%- wanPortLinkOption5 %></option>-->
+					</select>
+				</td>
+			</tr>
+			<tr class="normal group4">
+				<td class="list2td1"></td>
+				<td class="list2td3"><%- pcPortLink %></td>
+				<td>
+					<select class="normal" id="pcPortLink" name="pcPortLink">
+						<option value="0"><%- wanPortLinkOption0 %></option>
+						<option value="1"><%- wanPortLinkOption1 %></option>
+						<option value="2"><%- wanPortLinkOption2 %></option>
+						<% if(Page.productIdentification != productIdentification.CT11) { %>
+						<option value="6"><%- wanPortLinkOption6 %></option>
+						<% } %>
+						<option value="3"><%- wanPortLinkOption3 %></option>
+						<option value="4"><%- wanPortLinkOption4 %></option>
+						<!--<option value="5"><%- wanPortLinkOption5 %></option>-->
+					</select>
+				</td>
+			</tr>
+
+			<!-- Voice QoS -->
+			<tr class="normal group5">
+				<td colspan="3" class="head2">
+					<%- voiceQos %>
+					<span class="my-tooltips" title="<%- tips.voiceQos %>">&nbsp;</span>
+				</td>
+			</tr>
+			<tr class="normal group5">
+				<td class="list2td1"></td>
+				<td class="list2td3"><%- voiceQos %></td>
+				<td>
+					<input type="text" class="normal" id="voiceQos" name="voiceQos"/>(0~63)
+				</td>
+			</tr>
+			<tr class="normal group5">
+				<td class="list2td1"></td>
+				<td class="list2td3"><%- sipQos %></td>
+				<td>
+					<input type="text" class="normal" id="sipQos" name="sipQos"/>(0~63)
+				</td>
+			</tr>
+
+			<!-- Local RTP Port -->
+			<tr class="normal group6">
+				<td colspan="3" class="head2">
+					<%- localRtpPort %>
+					<span class="my-tooltips" title="<%- tips.localRtpPort %>">&nbsp;</span>
+				</td>
+			</tr>
+			<tr class="normal group6">
+				<td class="list2td1"></td>
+				<td class="list2td3"><%- maxRTPPort %></td>
+				<td>
+					<input type="text" class="normal" id="maxRTPPort" name="maxRTPPort"/>(2~65534)
+				</td>
+			</tr>
+			<tr class="normal group6">
+				<td class="list2td1"></td>
+				<td class="list2td3"><%- minRTPPort %></td>
+				<td>
+					<input type="text" class="normal" id="minRTPPort" name="minRTPPort"/>(2~65534)
+				</td>
+			</tr>
+
+			<!-- Web Server -->
+			<tr class="normal group7">
+				<td colspan="3" class="head2">
+					<%- webServer %>
+					<span class="my-tooltips" title="<%- tips.webServer %>">&nbsp;</span>
+				</td>
+			</tr>
+			<tr class="normal group7">
+				<td class="list2td1"></td>
+				<td class="list2td3"><%- httpPort %></td>
+				<td>
+					<input type="text" class="normal" id="httpPort" name="httpPort"/>(1~65535)
+				</td>
+			</tr>
+			<tr class="normal group7">
+				<td class="list2td1"></td>
+				<td class="list2td3"><%- httpsPort %></td>
+				<td>
+					<input type="text" class="normal" id="httpsPort" name="httpsPort"/>(1~65535)
+				</td>
+			</tr>
+			<tr class="normal group7">
+				<td class="list2td1"></td>
+				<td class="list2td3"><%- webServerType %></td>
+				<td>
+					<select id="webServerType" name="webServerType" class="normal">
+						<option value="0"><%- webServerTypeOption0 %></option>
+						<option value="1"><%- webServerTypeOption1 %></option>
+						<option value="2"><%- webServerTypeOption2 %></option>
+						<option value="3"><%- webServerTypeOption3 %></option>
+					</select>
+				</td>
+			</tr>
+
+			<!-- 802.1X -->
+			<tr class="normal group8">
+				<td colspan="3" class="head2">
+					<%- x_802_1x %>
+					<span class="my-tooltips" title="<%- tips.x_802_1x %>">&nbsp;</span>
+				</td>
+			</tr>
+			<tr class="normal group8">
+				<td class="list2td1"></td>
+				<td class="list2td3"><%- x_802_1x_mode %></td>
+				<td>
+					<select id="mode" name="mode" class="normal">
+						<option value="0"><%- x_802_1x_mode0 %></option>
+						<option value="1"><%- x_802_1x_mode1 %></option>
+						<option value="2"><%- x_802_1x_mode2 %></option>
+						<option value="3"><%- x_802_1x_mode3 %></option>
+						<option value="4"><%- x_802_1x_mode4 %></option>
+						<option value="5"><%- x_802_1x_mode5 %></option>
+						<option value="6"><%- x_802_1x_mode6 %></option>
+						<option value="7"><%- x_802_1x_mode7 %></option>
+					</select>
+				</td>
+			</tr>
+			<tr class="normal group8">
+				<td class="list2td1"></td>
+				<td class="list2td3"><%- x_802_1x_anonymous_identity %></td>
+				<td>
+					<input type="text" class="normal" id="anonymous_identity" name="anonymous_identity" maxlength="63" />
+				</td>
+			</tr>
+			<tr class="normal group8">
+				<td class="list2td1"></td>
+				<td class="list2td3"><%- x_802_1x_identity %></td>
+				<td>
+					<input type="text" class="normal" id="identity" name="identity" maxlength="63" />
+				</td>
+			</tr>	
+			<tr class="normal group8">
+				<td class="list2td1"></td>
+				<td class="list2td3"><%- x_802_1x_password %></td>
+				<td>
+					<input type="password" class="normal" id="md5" name="md5" maxlength="63" />
+				</td>
+			</tr>
+
+			<tr class="normal group8">
+				<td class="list2td1"></td>
+				<td class="list2td3">
+					<%- x_802_1x_ca_cert %>
+				</td>
+				<td>
+					<iframe src="/html/network/upload8021XCACert.html" id="X_802_1X_CA_Cert" frameborder="0" height="25" scrolling="no"></iframe>
+				</td>
+				<td>
+			</tr>
+			<tr class="normal group8">
+				<td class="list2td1"></td>
+				<td class="list2td3"></td>
+				<td>
+					<button id="upload_802_1X_CA_Cert" type="button"><%- importStr %></button>
+				</td>
+			</tr>
+			<tr class="normal group8">
+				<td class="list2td1"></td>
+				<td class="list2td3">
+					<%- x_802_1x_device_cert %>
+				</td>
+				<td>
+					<iframe src="/html/network/upload8021XDeviceCert.html" id="X_802_1X_Device_Cert" frameborder="0" height="25" scrolling="no"></iframe>
+				</td>
+				<td>
+			</tr>
+			<tr class="normal group8">
+				<td class="list2td1"></td>
+				<td class="list2td3"></td>
+				<td>
+					<button id="upload_802_1X_Device_Cert" type="button"><%- importStr %></button>
+				</td>
+			</tr>
+
+			<tr class="normal group8">
+				<td colspan="3" class="head2">
+					<%- span_to_pc %>
+				</td>
+			</tr>
+
+			<!-- Span to PC -->
+			<tr class="normal group9">
+				<td class="list2td1"></td>
+				<td class="list2td3"><%- sys_span_to_pc_port %></td>
+				<td>
+					<select id="SpanToPCPort" name="SpanToPCPort" class="normal">
+						<option value="0"><%- disable %></option>
+						<option value="1"><%- enable %></option>
+					</select>
+				</td>
+			</tr>
+
+			<!-- ICMPv6 Status -->
+			<tr class="normal group10">
+				<td colspan="3" class="head2">
+					<%- slaccEnable %>
+					<span class="my-tooltips" title="<%- tips.slaccEnable %>">&nbsp;</span>
+				</td>
+			</tr>
+			<tr class="normal group10">
+				<td class="list2td1"></td>
+				<td class="list2td3"><%- active %></td>
+				<td>
+					<select id="slaccEnable" name="slaccEnable" class="normal">
+						<option value="0"><%- disable %></option>
+						<option value="1"><%- enable %></option>
+					</select>
+				</td>
+			</tr>
+
+			<!-- VPN -->
+			<tr class="normal group10">
+				<td colspan="3" class="head2">
+					<%- vpn %>
+					<span class="my-tooltips" title="<%- tips.vpn %>">&nbsp;</span>
+				</td>
+			</tr>
+			<tr class="normal group10">
+				<td class="list2td1"></td>
+				<td class="list2td3"><%- active %></td>
+				<td>
+					<select id="vpnActive" name="vpnActive" class="normal">
+						<option value="0"><%- disable %></option>
+						<option value="1"><%- enable %></option>
+					</select>
+				</td>
+			</tr>
+			<tr class="normal group10">
+				<td class="list2td1"></td>
+				<td class="list2td3">
+					<%- importFile %>
+				</td>
+				<td>
+					<iframe src="/html/network/uploadVPNConfig.html" id="VPNConfig" frameborder="0" height="25" scrolling="no"></iframe>
+				</td>
+				<td>
+			</tr>
+			<tr class="normal group10">
+				<td class="list2td1"></td>
+				<td class="list2td3"></td>
+				<td>
+					<button id="uploadVPNConfig" type="button"><%- importStr %></button>
+				</td>
+			</tr>
+
+		</tbody>
+	</table>
+
+	<div class="page-button">
+		<a id="save" href="javascript:;"><%- butConfirm %></a> 
+		&nbsp;&nbsp;&nbsp;&nbsp;
+		&nbsp;&nbsp;&nbsp;&nbsp;
+		<a id="reset" href="javascript:;"><%- butCancel %></a>  
+	</div>
+	</script>
+	</form>
+</div>

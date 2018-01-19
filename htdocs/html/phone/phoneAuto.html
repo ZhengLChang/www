@@ -1,0 +1,335 @@
+<script type="text/javascript">
+$(document).ready(function(){
+	TempUtil.render('form1Temp', 'form1', phoneAutoHtml.form1);
+	var showText = phoneAutoHtml.showText,
+		$form = $('#form1'),
+	 	checkboxVals = ['0', '1', '2', '3', '4', '5', '6'],
+		checkboxLabels = showText.weekly,
+		$startHour = $('#startHour'),
+		$startMinute = $('#startMinute'),
+		$stopHour = $('#stopHour'),
+		$stopMinute = $('#stopMinute'),
+		$interval = $('#interval'),
+		$repeatedly = $('input[name="repeatedly"]'),
+		$weekly = $('input[name="weekly"]'),
+		$dayOfWeekly,
+		origialJSON,
+		origialStr;
+		
+	function formatCheckboxHtml(name, values, checks, labels){
+		var ret = [],
+			checkCopys = [],
+			len = values.length;
+			i = 0;
+			
+		for(i = 0; i < len; i++){
+			if(checks[i]){
+				checkCopys.push('checked');
+			} else {
+				checkCopys.push('');
+			}
+		}
+		
+		for(i = 0; i < len; i++){
+			ret.push(String.format('<input type="checkbox" name ="{0}" class="checkbox-mar" value="{1}" {2}/>{3}<br/>',
+										name, values[i], checkCopys[i], labels[i]));
+		}
+		
+		return ret.join('');
+	}
+	
+	function renderData(data){
+		Page.setFormFieldValue('provisioningServer', data.provisioningServer);
+		Page.setFormFieldValue('userName', data.userName);
+		Page.setFormFieldValue('password', data.password);
+		Page.setFormFieldValue('commonAESKey', data.commonAESKey);
+		Page.setFormFieldValue('MACAESKey', data.MACAESKey);
+
+		Page.setRadioFieldValue('checkNewConfig', data.checkNewConfig);
+		Page.setRadioFieldValue('repeatedly', data.repeatedly);
+		Page.setFormFieldValue('interval', data.interval);
+		
+		Page.setRadioFieldValue('weekly', data.weekly);
+		Page.setFormFieldValue('startHour', data.startHour);
+		Page.setFormFieldValue('startMinute', data.startMinute);
+		Page.setFormFieldValue('stopHour', data.stopHour);
+		Page.setFormFieldValue('stopMinute', data.stopMinute);
+
+        Page.setRadioFieldValue('PnPEnable', data.PnPEnable);
+        Page.setRadioFieldValue('DHCPEnable', data.DHCPEnable);
+
+		var checkboxHtml = formatCheckboxHtml('dayOfWeekly', checkboxVals, data.dayOfWeekly, checkboxLabels);
+		$('#dayOfWeek').html(checkboxHtml);
+		$dayOfWeekly = $('input[name="dayOfWeekly"]');
+	}
+	
+	function initPage(){
+		function formatNum(value){
+			if((-1 < value) && (value < 10)){
+				return '0' + value;
+			} 
+			
+			return value;
+		}
+		
+		var valid1 = {
+			min: 0,
+			max: 23,
+			formatter: formatNum
+		},
+		valid2 = {
+			min: 0,
+			max: 59,
+			formatter: formatNum	
+		},
+		num_1_43200 = {
+			min: 1,
+			max: 43200
+		};
+		
+		$startHour.numberbox(valid1);
+		$startMinute.numberbox(valid2);
+		$stopHour.numberbox(valid1);
+		$stopMinute.numberbox(valid2);
+		
+		$interval.numberbox(num_1_43200);
+		
+		$repeatedly.change();
+		
+		$('#save').linkbutton();  
+		$('#reset').linkbutton(); 
+	}
+	
+	Page.postJSON({
+		url: MenuItem.pAuto.get,
+		success: function(data){
+			origialJSON = data;
+			
+			renderData(data);
+			initPage();
+			
+			Page.$iframe.show();
+			origialStr = $form.formSerialize();
+			Page.initTips();
+		}
+	});
+	
+	$repeatedly.change(function(){
+		var myEnable = true,
+			value = $repeatedly.filter(':checked').val();
+		if(value === '1'){
+			myEnable = true;
+		} else {
+			myEnable = false;
+		}
+		
+		$interval.myEnable(myEnable);
+			
+		$weekly.myEnable(!myEnable);
+		$weekly.change();
+		
+	});
+	
+	$weekly.change(function(){
+		var myEnable = true,
+			value = $weekly.filter(':checked').val();
+		if(value === '1'){
+			myEnable = true;
+		} else {
+			myEnable = false;
+		}
+		
+		$startHour.myEnable(myEnable);
+		$startMinute.myEnable(myEnable);
+		$stopHour.myEnable(myEnable);
+		$stopMinute.myEnable(myEnable);
+		$dayOfWeekly.myEnable(myEnable);
+	});
+	
+	$('#save').click(function(){
+		if(ValidHelper.invalid($form)){
+			AlertUtil.invalidVal();
+			return false;
+		}
+		if(origialStr == $form.formSerialize()){
+			AlertUtil.saveNoChange();
+			return false;
+		}
+		var json = JSON.parmsToJSON($form);
+		
+		var ret = [],
+			jsonRet = [];
+		$dayOfWeekly.each(function(i, ele){
+			if($(this).is(':checked')){
+				ret.push('1');
+				jsonRet.push(1);
+			} else {
+				ret.push('0');
+				jsonRet.push(0);
+			}
+		});
+		json.sunday = ret[0] || '1';
+		json.monday = ret[1] || '1';
+		json.tuesday = ret[2] || '1';
+		json.wednesday = ret[3] || '1';
+		json.thursday = ret[4] || '1';
+		json.friday = ret[5] || '1';
+		json.saturday = ret[6] || '1';
+		
+		json.dayOfWeekly = jsonRet;
+		
+		Page.postJSON({
+			url: MenuItem.pAuto.set,
+			data: JSON.serializeToParms(json),
+			success: function(data){
+				AlertUtil.saveSuccess();
+				origialJSON = json;
+				origialStr = $form.formSerialize();
+			}
+		});
+	});
+	
+	var $inputNums = null;
+	$('#reset').click(function(){
+		if(origialJSON){
+			renderData(origialJSON);
+			$repeatedly.change();
+			$inputNums = ValidHelper.numHelper($inputNums);
+		}
+	});
+});
+</script>
+<div class="detail_box">
+	<form id="form1">
+	<script type="text/template" id="form1Temp">
+	<table class="list2">
+		<tbody>				
+			<tr class="head2">
+				<td colspan="3"><%- autoProvision %></td>				
+			</tr>
+			<tr>
+				<td class="list2td1"></td>
+				<td class="list2td3"><%- PnPEnable %></td>
+				<td>
+					<input type="radio" id="checkNewConfig1" name="PnPEnable" value="1" class="radio" checked/>
+					<label class="pointer" for="checkNewConfig1"><%- on %></label>
+					<input type="radio" id="checkNewConfig0" name="PnPEnable" value="0" class="radio"/>
+					<label class="pointer" for="checkNewConfig0"><%- off %></label>
+					<span class="my-tooltips" title="<%- tips.PnPEnable %>">&nbsp;</span>
+				</td>
+			</tr>
+			<tr>
+				<td class="list2td1"></td>
+				<td class="list2td3"><%- DHCPEnable %></td>
+				<td>
+					<input type="radio" id="checkNewConfig1" name="DHCPEnable" value="1" class="radio" checked/>
+					<label class="pointer" for="checkNewConfig1"><%- on %></label>
+					<input type="radio" id="checkNewConfig0" name="DHCPEnable" value="0" class="radio"/>
+					<label class="pointer" for="checkNewConfig0"><%- off %></label>
+					<span class="my-tooltips" title="<%- tips.DHCPEnable %>">&nbsp;</span>
+				</td>
+			</tr>
+			<tr>
+				<td class="list2td1"></td>
+				<td class="list2td3"><%- provisioningServer %></td>
+				<td>
+					<input type="text" class="big" id="provisioningServer" name="provisioningServer" maxlength="512"/>
+					<span class="my-tooltips" title="<%- tips.provisioningServer %>">&nbsp;</span>
+				</td>
+			</tr>
+			<tr>
+				<td class="list2td1"></td>
+				<td class="list2td3"><%- userName %></td>
+				<td>
+					<input type="text" class="normal" id="userName" name="userName" maxlength="32"/>					
+				</td>
+			</tr>
+			<tr>
+				<td class="list2td1"></td>
+				<td class="list2td3"><%- password %></td>
+				<td>
+					<input type="password" class="normal" id="password" name="password" maxlength="32"/>
+					<span class="my-tooltips" title="<%- tips.password %>">&nbsp;</span>
+				</td>
+			</tr>
+			<tr>
+				<td class="list2td1"></td>
+				<td class="list2td3"><%- commonAESKey %></td>
+				<td>
+					<input type="password" class="normal" id="commonAESKey" name="commonAESKey" maxlength="16"/>					
+				</td>
+			</tr>
+			<tr>
+				<td class="list2td1"></td>
+				<td class="list2td3"><%- MACAESKey %></td>
+				<td>
+					<input type="password" class="normal" id="MACAESKey" name="MACAESKey" maxlength="16"/>					
+				</td>
+			</tr>
+			<tr>
+				<td class="list2td1"></td>
+				<td class="list2td3"><%- checkNewConfig %></td>
+				<td>
+					<input type="radio" id="checkNewConfig1" name="checkNewConfig" value="1" class="radio" checked/>
+					<label class="pointer" for="checkNewConfig1"><%- on %></label>
+					<input type="radio" id="checkNewConfig0" name="checkNewConfig" value="0" class="radio"/>
+					<label class="pointer" for="checkNewConfig0"><%- off %></label>
+					<span class="my-tooltips" title="<%- tips.checkNewConfig %>">&nbsp;</span>
+				</td>
+			</tr>
+			<tr>
+				<td class="list2td1"></td>
+				<td class="list2td3"><%- repeatedly %></td>
+				<td>
+					<input type="radio" id="repeatedly1" name="repeatedly" value="1" class="radio"/>
+					<label class="pointer" for="repeatedly1"><%- on %></label>
+					<input type="radio" id="repeatedly0" name="repeatedly" value="0" class="radio" checked/>
+					<label class="pointer" for="repeatedly0"><%- off %></label>
+				</td>
+			</tr>
+			<tr>
+				<td class="list2td1"></td>
+				<td class="list2td3"><%- interval %></td>
+				<td>
+					<input type="text" class="normal" id="interval" name="interval"/>					
+				</td>
+			</tr>
+			<tr>
+				<td class="list2td1"></td>
+				<td class="list2td3"><%- weekly %></td>
+				<td>
+					<input type="radio" id="weekly1" name="weekly" value="1" class="radio"/>
+					<label class="pointer" for="weekly1"><%- on %></label>
+					<input type="radio" id="weekly0" name="weekly" value="0" class="radio" checked/>
+					<label class="pointer" for="weekly0"><%- off %></label>
+				</td>
+			</tr>
+			<tr>
+				<td class="list2td1"></td>
+				<td class="list2td3"><%- time %></td>
+				<td>
+					<input type="text" class="smaller" name ="startHour" id="startHour" maxlength="2" value="00"/>:
+					<input type="text" class="smaller" name ="startMinute" id="startMinute" maxlength="2" value="00"/>&nbsp;--&nbsp;
+					<input type="text" class="smaller" name ="stopHour" id="stopHour" maxlength="2" value="00"/>:
+					<input type="text" class="smaller" name ="stopMinute" id="stopMinute" maxlength="2" value="00"/>					
+				</td>
+			</tr>
+			<tr>
+				<td class="list2td1"></td>
+				<td class="list2td3"><%- dayOfWeek %></td>
+				<td id="dayOfWeek">
+										
+				</td>
+			</tr>										
+		</tbody>
+		
+	</table>
+	<div class="page-button">
+		<a id="save" href="javascript:;"><%- butConfirm %></a> 
+		&nbsp;&nbsp;&nbsp;&nbsp;
+		&nbsp;&nbsp;&nbsp;&nbsp;	
+		<a id="reset" href="javascript:;"><%- butCancel %></a>  
+	</div>
+	</script>
+	</form>
+</div>

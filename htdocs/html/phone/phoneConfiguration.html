@@ -1,0 +1,333 @@
+<script type="text/javascript">
+$(document).ready(function(){
+	TempUtil.render('div1Temp', 'div1', phoneConfigurationHtml.div1);	
+	
+	var $serverNameTr = $('#serverNameTr'),
+		$exportTr = $('#exportTr'),
+		$form = $('#form1'),
+		origialStr,
+		origialJSON;
+	
+	function initPage(){
+		if(origialJSON.radioSyslogType === 1){
+			$('#radioSyslogType1').change();
+		}
+		
+		$('#save').linkbutton();  
+		$('#reset').linkbutton(); 
+	}
+	
+	function renderData(data){
+		Page.setRadioFieldValue('radioSyslogType', data.radioSyslogType);
+		
+		Page.setFormFieldValue('logLevel', data.logLevel);
+		Page.setFormFieldValue('serverName', data.serverName);
+	}
+	
+	Page.postJSON({
+		url: MenuItem.pConfig.get,
+		success: function(data){
+			
+			renderData(data);
+			origialJSON = data;
+			initPage();
+			
+			Page.$iframe.show();
+			origialStr = $form.formSerialize();
+			Page.initTips();
+		}
+	});
+	
+	$('#div1').delegate('input[name="radioSyslogType"]', "change", function(){
+		var val = this.value;
+		
+		if(val === "0"){
+			$serverNameTr.hide();
+			$exportTr.show();
+		} else {
+			$serverNameTr.show();
+			$exportTr.hide();
+		}
+	});
+	
+	$('#importConfig').click(function(){
+		var $form = $('#uploadConfig'),
+			jsonData = null,
+			$configFile = $('#configFile'),
+			updateFileName = $configFile.val();
+		
+		if(updateFileName === ''){
+			AlertUtil.fileIsEmpty();	           
+            return false;
+		}
+		if(/[\\\/]/.test(updateFileName)) {
+        	var matchs = updateFileName.match(/(.*)?[\\\/](.*)/);
+        	updateFileName = matchs[2];
+        }
+		AlertUtil.confirm(uploadCommon.uploadFilePrompt + '</br>' + updateFileName, function(r){
+			if(r){
+				$form.ajaxSubmit({
+		            url: MenuItem.pConfig.importConfig,
+		            type: 'POST',
+		            dataType: 'text',
+		            beforeSubmit: function() {            
+		                SysUtil.showProgress({
+		                	msg: uploadCommon.uploadMsg,
+		                	text: uploadCommon.uploadText,
+		                	checkStatus: function(){
+		                		return jsonData != null;
+		                	},
+		                	callback: function(){
+		                		$.messager.progress('close');
+		                		if(jsonData.return_code === 0){
+		                			AlertUtil.alertMsg(uploadCommon.uploadSuccess);
+		                		} else {
+		                			AlertUtil.alertMsg(uploadCommon.uploadFail);
+		                		}
+		                	}
+		                });
+		             
+		                return true;
+		            },
+		            success: function(data, statusText) {
+		            	try{
+		            		jsonData = JSON.parse(data);
+		            	}catch(ex){
+		            		jsonData = {return_code: -1};
+		            	}          
+		            },
+		            error: function(responseText, statusText) {
+		            	jsonData = {return_code: -1};
+		            }
+		        });
+			}
+		});
+	});
+	$('#exportConfig').click(function(){
+		var url = MenuItem.pConfig.exportConfig;
+		if($('#exportUserData').prop('checked')){
+			url += '=&userData=1';
+		}
+		window.location.assign(url);
+	});
+	
+	$('#exportSystemLog').click(function(){
+		var url = MenuItem.pConfig.exportSyslog;
+		window.location.assign(url);
+	});
+
+	$('#importConfigButton').click(function(){
+		var $formImportConfig = $('#importConfigForSettingProvision'),
+			jsonData = null,
+			$importFile = $('#importFile'),
+			updateFileName = $importFile.val();
+
+		if(updateFileName === ''){
+			AlertUtil.fileIsEmpty();
+			return false;
+		}
+		if(/[\\\/]/.test(updateFileName)) {
+         	var matchs = updateFileName.match(/(.*)?[\\\/](.*)/);
+         	updateFileName = matchs[2];
+        }
+		AlertUtil.confirm(uploadCommon.uploadFilePrompt + '</br>' + updateFileName, function(r){
+			if(r){
+				$formImportConfig.ajaxSubmit({
+		            url: MenuItem.pConfig.importConfigForSettingProvision,
+		            type: 'POST',
+		            dataType: 'text',
+		            beforeSubmit: function() {          
+		                SysUtil.showProgress({
+		                	msg: uploadCommon.uploadMsg,
+		                	text: uploadCommon.uploadText,
+		                	checkStatus: function(){
+		                		return jsonData != null;
+		                	},
+		                	callback: function(){
+		                		$.messager.progress('close');
+		                		if(jsonData.return_code == 0){
+		                		    var url = location.href, index = url.indexOf('?');
+
+		                			AlertUtil.alertMsg(uploadCommon.uploadSuccess);
+
+		                			index = url.indexOf('?');
+		                            if(index > -1){
+			                            url = url.substring(0, index);
+		                            }
+		                            index= url.indexOf('#');
+		                            if(index > -1){
+			                            url = url.substring(0, index);
+		                            }
+
+		                            window.location.assign(url);	
+		                		} else {
+		                			AlertUtil.alertMsg(uploadCommon.uploadFail);
+		                		}
+		                	}
+		                });
+
+		                return true;
+		            },
+		            success: function(data, statusText) {
+		            	try{
+		            		jsonData = JSON.parse(data);
+		            	}catch(ex){
+		            		jsonData = {return_code: -1};
+		            	}
+		            },
+		            error: function(responseText, statusText) {
+		            	jsonData = {return_code: -1};
+		            }
+		        });
+			}
+		});
+	});
+
+	$('#outportConfigButton').click(function(){
+		var url = MenuItem.pConfig.outportConfigForSettingProvision;
+		window.location.assign(url);
+	});
+
+	
+	$('#save').click(function(){
+		if(origialStr === $form.formSerialize()){
+			AlertUtil.saveNoChange();
+			return false;
+		}
+		var json = JSON.parmsToJSON($form);
+		
+		Page.postJSON({
+			url: MenuItem.pConfig.set,
+			data: JSON.serializeToParms(json),
+			success: function(data){
+				AlertUtil.saveSuccess();
+				origialStr = $form.formSerialize();
+			}
+		});
+	});
+	
+	$('#reset').click(function(){
+		if(origialJSON){
+			renderData(origialJSON);
+			if(origialJSON.radioSyslogType === 1){
+				$('#radioSyslogType1').change();
+			}
+		}
+	});
+});
+</script>
+<div class="detail_box">
+	<div id="div1">
+	<script type="text/template" id="div1Temp">
+	<table class="list2">
+		<tbody>				
+			<tr class="head2">
+				<td colspan="3">
+					<%- importExportCfg %>
+				</td>
+			</tr>
+			<tr>
+				<td class="list2td1"></td>
+				<td class="list2td3">
+					<%- importFile %>
+					<span class="my-tooltips" title="<%- tips.importExportCfg %>">&nbsp;</span>
+				</td>
+				<td>
+					<form id="uploadConfig" enctype="multipart/form-data" method="post">
+						<input type="file" id="configFile" name="configFile"/>
+					</form>
+				</td>
+			</tr>
+			<tr>
+				<td class="list2td1"></td>
+				<td class="list2td3"></td>
+				<td>
+					<button id="importConfig" type="button"><%- importStr %></button>
+					<button id="exportConfig" type="button"><%- exportStr %></button>
+					<input type="checkbox" class="checkbox" id="exportUserData" value="yes"/>
+					<label class="pointer" for="exportUserData"><%- exportUserData %></label>
+				</td>
+			</tr>
+		</tbody>
+	</table>
+
+	<table class="list2">
+		<tbody>				
+			<tr class="head2">
+				<td colspan="3"><%- exportImportConfig %>	
+				<span class="my-tooltips" title="<%- tips.exportImportConfig %>">&nbsp;</span>
+				</td>
+			</tr>
+
+			<tr>
+				<td class="list2td1"></td>
+				<td class="list2td3"><%- exportImportConfig %></td>
+				<td>
+					<form id="importConfigForSettingProvision" enctype="multipart/form-data" method="post">
+					<input type="file" id="importFile" name="importFile"/>
+					</form>
+				</td>
+			</tr>
+			<tr>
+				<td class="list2td1"></td>
+				<td class="list2td3"></td>
+				<td>
+		                    <button id="importConfigButton" href="javascript:;" type="button"><%- importStr %></button> 
+				    <button id="outportConfigButton" href="javascript:;" type="button"><%- exportStr %></button>
+				</td>
+			</tr>
+		</tbody>
+	</table>
+
+	<form id="form1">
+	<table class="list2">
+		<tbody>
+			<tr class="head2">
+				<td colspan="3"><%- exportSyslog %></td>
+			</tr>
+			<tr>
+				<td class="list2td1"></td>
+				<td class="list2td3"><%- logLocation %></td>
+				<td>
+					<input type="radio" class="radio" id="radioSyslogType0" name="radioSyslogType" value="0"/>
+					<label class="pointer" for="radioSyslogType0"><%- logLocationOpt0 %></label>&nbsp;		
+              		<input type="radio" class="radio" id="radioSyslogType1" name="radioSyslogType" value="1"/>
+					<label class="pointer" for="radioSyslogType1"><%- logLocationOpt1 %></label>						
+					<span class="my-tooltips" title="<%- tips.exportSyslog %>">&nbsp;</span>
+				</td>
+			</tr>	
+			<tr id="serverNameTr" style="display:none;">
+				<td class="list2td1"></td>
+				<td class="list2td3"><%- serverName %></td>
+				<td>
+					<input type="text" class="normal" id="serverName" name="serverName"/>
+				</td>
+			</tr>
+			<tr>
+				<td class="list2td1"></td>
+				<td class="list2td3"><%- logLevel %></td>
+				<td>
+					<select id="logLevel" name="logLevel" class="normal">
+						<option value="0"><%- logOpt0 %></option>
+						<option value="1"><%- logOpt1 %></option>
+						<option value="2"><%- logOpt2 %></option>
+						<option value="3" selected="selected"><%- logOpt3 %></option>
+						<option value="4"><%- logOpt4 %></option>						
+					</select>
+				</td>
+			</tr>
+			
+		</tbody>
+	</table>
+	</form>
+
+
+	<div class="page-button">
+		<a id="save" href="javascript:;"><%- butConfirm %></a> 
+		&nbsp;&nbsp;&nbsp;&nbsp;
+		&nbsp;&nbsp;&nbsp;&nbsp;	
+		<a id="reset" href="javascript:;"><%- butCancel %></a>  
+	</div>
+	</script>
+	</div>
+</div>

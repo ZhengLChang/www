@@ -1,0 +1,249 @@
+<script type="text/javascript">
+$(document).ready(function(){
+	TempUtil.render('form1Temp', 'form1', LDAPHtml.form1);
+	var origialJSON,
+		origialStr,
+		$form = $('#form1');
+
+	function renderData(data){
+		Page.setFormFieldValue('enable', data.enable);
+		
+		Page.setFormFieldValue('name_filter', data.name_filter);
+		Page.setFormFieldValue('number_filter', data.number_filter);
+
+		Page.setFormFieldValue('server_address', data.server_address);
+		Page.setFormFieldValue('port', data.port);
+		Page.setFormFieldValue('base', data.base);
+		
+		Page.setFormFieldValue('user_name', data.user_name);
+		Page.setFormFieldValue('password', data.password);
+		Page.setFormFieldValue('max_hits', data.max_hits);
+		Page.setFormFieldValue('name_attributes', data.name_attributes);
+		Page.setFormFieldValue('number_attributes', data.number_attributes);
+		Page.setFormFieldValue('display_name', data.display_name);
+		Page.setFormFieldValue('protocol_version', data.protocol_version);
+		Page.setFormFieldValue('sort_result', data.sort_result);
+		Page.setFormFieldValue('match_incoming_calls', data.match_incoming_calls);
+		Page.setFormFieldValue('ldap_lookup_for_dial', data.ldap_lookup_for_dial);
+	}
+
+	function initPage(){
+		$('#port').numberbox({
+			min: 0,
+			max: 65535
+		});
+		$('#max_hits').numberbox({
+			min: 1,
+			max: 32000
+		});
+
+		$('#save').linkbutton();  
+		$('#reset').linkbutton(); 
+	}
+
+	Page.postJSON({
+		url: MenuItem.cLDAP.get,
+		success: function(data){
+			origialJSON = data;
+
+			renderData(data);
+			initPage();
+
+			Page.$iframe.show();
+			origialStr = $form.formSerialize();
+			Page.initTips();
+		}
+	});
+
+	$('#save').click(function(){
+		if(ValidHelper.invalid($form)){
+			AlertUtil.invalidVal();
+			return false;
+		}
+
+		if(origialStr == $form.formSerialize()){
+			AlertUtil.saveNoChange();
+			return false;
+		}
+
+		var json = JSON.parmsToJSON($form);
+
+		Page.postJSON({
+			url: MenuItem.cLDAP.set,
+			data: JSON.serializeToParms(json),
+			success: function(data){
+				AlertUtil.saveSuccess();
+				origialJSON = json;
+				origialStr = $form.formSerialize();
+			}
+		});
+	});
+
+	var $inputNums = null;
+	$('#reset').click(function(){
+		if(origialJSON){
+			renderData(origialJSON);
+			$inputNums = ValidHelper.numHelper($inputNums);
+		}
+	});
+});
+</script>
+<div class="detail_box">
+	<form id="form1">
+	<script type="text/template" id="form1Temp">
+	<table class="list2">
+		<tbody>				
+			<tr class="head2">
+				<td colspan="3">
+					<%- LDAP %>
+					<span class="my-tooltips" title="<%- tips.LDAP %>">&nbsp;</span>
+				</td>
+			</tr>
+			<tr>
+				<td class="list2td1"></td>
+				<td class="list2td3"><%- enable_ldap %></td>
+				<td>
+					<select id="enable" name="enable" class="normal">
+						<option value="0"><%- disable %></option>
+						<option value="1"><%- enable %></option>
+					</select>
+				</td>
+			</tr>
+			<tr>
+                <td class="list2td2"></td>
+                <td class="list2td3"><%- name_filter %></td>
+                <td>
+                    <input type="text" class="normal" id="name_filter" name="name_filter" maxlength="99"/>
+                    <span class="my-tooltips" title="<%- tips.name_filter %>">&nbsp;</span>
+                </td>
+            </tr>
+            <tr>
+                <td class="list2td2"></td>
+                <td class="list2td3"><%- number_filter %></td>
+                <td>
+                    <input type="text" class="normal" id="number_filter" name="number_filter" maxlength="99"/>
+                    <span class="my-tooltips" title="<%- tips.number_filter %>">&nbsp;</span>
+                </td>
+            </tr>
+			<tr>
+				<td class="list2td1"></td>
+				<td class="list2td3"><%- server_address %></td>
+				<td>
+					<input type="text" class="normal" id="server_address" name="server_address" maxlength="99"/>
+					&nbsp;<%- port %>&nbsp;<input type="text"  class="port" id="port" name="port" />
+					<span class="my-tooltips" title="<%- tips.port %>">&nbsp;</span>
+				</td>
+			</tr>
+            <tr>
+                <td class="list2td2"></td>
+                <td class="list2td3"><%- base %></td>
+                <td>
+                    <input type="text" class="normal" id="base" name="base" maxlength="99"/>
+                    <span class="my-tooltips" title="<%- tips.base %>">&nbsp;</span>
+                </td>
+            </tr>
+			<tr>
+				<td class="list2td1"></td>
+				<td class="list2td3"><%- user_name %></td>
+				<td>
+					<input type="text" class="normal" id="user_name" name="user_name" maxlength="99"/>
+					<span class="my-tooltips" title="<%- tips.user_name %>">&nbsp;</span>
+				</td>
+			</tr>
+			<tr>
+				<td class="list2td1"></td>
+				<td class="list2td3"><%- password %></td>
+				<td>
+					<input type="password" class="normal" id="password" name="password" maxlength="99"/>
+					<span class="my-tooltips" title="<%- tips.password %>">&nbsp;</span>
+				</td>
+			</tr>
+			<tr>
+				<td class="list2td1"></td>
+				<td class="list2td3"><%- max_hits %></td>
+				<td>
+					<input type="text" class="normal" id="max_hits" name="max_hits"/>
+					<span class="my-tooltips" title="<%- tips.max_hits %>">&nbsp;</span>
+					&nbsp;<span>(1~32000)</span>
+				</td>
+			</tr>
+			<tr>
+                <td class="list2td2"></td>
+                <td class="list2td3"><%- name_attributes %></td>
+                <td>
+                    <input type="text" class="normal" id="name_attributes" name="name_attributes" maxlength="99"/>
+                    <span class="my-tooltips" title="<%- tips.name_attributes %>">&nbsp;</span>
+                </td>
+            </tr>
+            <tr>
+                <td class="list2td2"></td>
+                <td class="list2td3"><%- number_attributes %></td>
+                <td>
+                    <input type="text" class="normal" id="number_attributes" name="number_attributes" maxlength="99"/>
+                    <span class="my-tooltips" title="<%- tips.number_attributes %>">&nbsp;</span>
+                </td>
+            </tr>
+            <tr>
+                <td class="list2td2"></td>
+                <td class="list2td3"><%- display_name %></td>
+                <td>
+                    <input type="text" class="normal" id="display_name" name="display_name" maxlength="99"/>
+                    <span class="my-tooltips" title="<%- tips.display_name %>">&nbsp;</span>
+                </td>
+            </tr>
+			<tr>
+				<td class="list2td1"></td>
+				<td class="list2td3"><%- protocol_version %></td>
+				<td>
+					<select id="protocol_version" name="protocol_version" class="normal">
+						<option value="2"><%- version2 %></option>
+						<option value="3"><%- version3 %></option>
+					</select>
+				</td>
+			</tr>
+			<tr>
+				<td class="list2td1"></td>
+				<td class="list2td3"><%- sort_result %></td>
+				<td>
+					<select id="sort_result" name="sort_result" class="normal">
+						<option value="0"><%- disable %></option>
+						<option value="1" selected="selected"><%- enable %></option>
+					</select>
+					<span class="my-tooltips" title="<%- tips.sort_result %>">&nbsp;</span>
+				</td>
+			</tr>
+			<tr>
+				<td class="list2td1"></td>
+				<td class="list2td3"><%- match_incoming_calls %></td>
+				<td>
+					<select id="match_incoming_calls" name="match_incoming_calls" class="normal">
+						<option value="0"><%- disable %></option>
+						<option value="1" selected="selected"><%- enable %></option>
+					</select>
+					<span class="my-tooltips" title="<%- tips.match_incoming_calls %>">&nbsp;</span>
+				</td>
+			</tr>
+						<tr>
+				<td class="list2td1"></td>
+				<td class="list2td3"><%- ldap_lookup_for_dial %></td>
+				<td>
+					<select id="ldap_lookup_for_dial" name="ldap_lookup_for_dial" class="normal">
+						<option value="0"><%- disable %></option>
+						<option value="1" selected="selected"><%- enable %></option>
+					</select>
+					<span class="my-tooltips" title="<%- tips.ldap_lookup_for_dial %>">&nbsp;</span>
+				</td>
+			</tr>
+
+		</tbody>
+
+	</table>
+	<div class="page-button">
+		<a id="save" href="javascript:;"><%- butConfirm %></a> 
+		&nbsp;&nbsp;&nbsp;&nbsp;
+		&nbsp;&nbsp;&nbsp;&nbsp;	
+		<a id="reset" href="javascript:;"><%- butCancel %></a>  
+	</div>
+	</script>
+	</form>
+</div>

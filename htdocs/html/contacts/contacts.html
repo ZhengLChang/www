@@ -1,0 +1,965 @@
+<script type="text/javascript">
+$(document).ready(function(){
+	contactsHtml.editDiv.model = Page.model;
+	TempUtil.render('mytab_menuTemp', 'mytab_menu', {mytabMenu: contactsHtml.mytabMenu});
+	TempUtil.render('buttonDivTemp', 'buttonDiv', contactsHtml.buttonDiv);
+	TempUtil.render('editDivTemp', 'editDiv', contactsHtml.editDiv);
+
+	var showText = contactsHtml.shwoText,
+		origialJSON,
+		origialStr,
+		alertEnable = true,
+		MAX_PHONEBOOK_LEN = 1000,
+		MAX_BLACKLIST_LEN = 50,
+		whiteListTemp = $('#whiteListTemp').html(),
+		blackListTemp = $('#blackListTemp').html(),
+		firstRequest = true,
+		PhonebookType = {
+			WHITE: 0,
+			BLACK: 1
+		},
+		currentShowList = PhonebookType.WHITE,
+		whites = [],
+		blacks = [],
+		$moveToBlack = $('#moveToBlack'),
+		$moveToWhite = $('#moveToWhite'),
+		$uploadPhoto = $('#uploadPhoto'),
+		$deletePhoto = $('#deletePhoto');
+
+	function classifyData(data){
+		whites.length = 0;
+		blacks.length = 0;
+
+		whites.unshift(contactsHtml.tableHeader);
+		blacks.unshift(contactsHtml.tableHeader);
+
+		var i, len = data.length, item;
+		for(i = 0; i < len; i++){
+			item = data[i];
+
+			if(item[0] == PhonebookType.WHITE){
+				whites.push(item);
+			} else if(item[0] == PhonebookType.BLACK){
+				blacks.push(item);
+			} 
+		}
+	}
+
+	function sortPhonebook(arrays){
+		var first = arrays.shift();
+		arrays.sort(function(a, b){
+			return a[1].localeCompare(b[1]);
+		});
+		arrays.unshift(first);
+	}
+	function sortPhonebook2(arrays){
+		arrays.sort(function(a, b){
+			return a[1].localeCompare(b[1]);
+		});
+	}
+
+	function renderData(){
+		sortPhonebook(whites);
+		sortPhonebook(blacks);
+
+		TempUtil.render2(whiteListTemp, 'whiteList', {lists: whites, 
+													auto: contactsHtml.editDiv.accountOpt8,
+													account:  contactsHtml.editDiv.account});
+		TempUtil.render2(blackListTemp, 'blackList', {lists: blacks, 
+													auto: contactsHtml.editDiv.accountOpt8,
+													account:  contactsHtml.editDiv.account});
+		Page.iePercentFix('tabsitems', 0.5, 2);
+	}
+
+	var $lis = $("ul.mytabs a");
+    var $boxes = $("div.mytab_boxes > div");
+    var is_init = 0;
+    $lis.click(function() {
+		$lis.removeClass("current");
+		$(this).addClass("current");
+		var pannelIndex = $lis.index(this);
+		$boxes.eq(pannelIndex).show().siblings().hide();
+		if(!is_init)
+		{
+			is_init = 1;
+			Page.initTips();
+		}
+
+        switch (pannelIndex) {
+        	case 0:
+        		if(firstRequest){
+        			Page.postJSON({
+            			url: MenuItem.cContacts.get,
+            			success: function(data){
+            				origialJSON = data;
+                    		classifyData(origialJSON);
+            				renderData();
+            				Page.$iframe.show();
+            				Page.iePercentFix('tabsitems', 0.5, 2);
+            				firstRequest = false;
+            				sortPhonebook2(origialJSON);
+            				origialStr = JSON.serializeToParms(origialJSON);
+            			}
+            		});
+        		} else {
+        			Page.iePercentFix('tabsitems', 0.5, 2);
+        		}
+
+        		$moveToBlack.show();
+				$moveToWhite.hide();
+				currentShowList = PhonebookType.WHITE;
+				$uploadPhoto.myEnable(true);
+
+        		break;
+        	case 1:
+
+        		$moveToBlack.hide();
+				$moveToWhite.show();
+        		currentShowList = PhonebookType.BLACK;
+        		$uploadPhoto.myEnable(false);
+				$deletePhoto.myEnable(false);
+        		Page.iePercentFix('tabsitems', 0.5, 2);
+        		break;
+        	default:
+        		break;
+        }
+    });
+
+    var $name = $('#name'),
+    	$officeNum = $('#officeNum'),
+    	$mobileNum = $('#mobileNum'),
+    	$otherNum = $('#otherNum'),
+    	$account = $('#account'),
+    	$ring = $('#ring'),
+    	$photo = $('#photo'),
+    	$photoImg = $('#photoImg'),
+    	$group_name = $('#group_name'),
+    	$idHide = $('#idHide'),
+    	$customPhotoPath = $('#customPhotoPath'),
+    	PhotoUrl = {
+    		P0: 'common.png',
+    		P1: 'kid_f.png',
+    		P2: 'kid_m.png',
+    		P3: 'middle_f.png',
+    		P4: 'middle_m.png',
+    		P5: 'boy.png',
+    		P6: 'girl.png',
+    		P7: 'senior_f.png',
+    		P8: 'senior_m.png'
+    	};
+
+    function getRecord(){
+    	var record = [];
+    	record.push(currentShowList);
+    	record.push($name.val() || '');
+    	record.push($officeNum.val() || '');
+    	record.push($mobileNum.val() || '');
+    	record.push($otherNum.val() || '');
+    	record.push($account.val() || '0');
+    	record.push($photo.val() || '0');
+    	record.push($customPhotoPath.val() || '');
+    	record.push($ring.val() || '0');
+    	record.push($group_name.val() || '');
+    	record.push($idHide.val() || -1);
+
+    	return record;
+    }
+
+    function getFileNameFromPath(path){
+    	return path.substring(path.lastIndexOf('/')+1);
+    }
+
+    function setRecord(item){
+    	if(!item){
+    		item = [0, '', '', '', '', '0', '0', '', '0', '-1', ''];
+    	}
+
+    	$name.val(item[1]);
+    	$officeNum.val(item[2]);
+    	$mobileNum.val(item[3]);
+    	$otherNum.val(item[4]);
+    	$account.val(item[5]);
+    	$photo.val(item[6]);
+    	$customPhotoPath.val(item[7]);
+    	$ring.val(item[8]);
+    	$group_name.val(item[9]);
+    	$idHide.val(item[10]);
+
+    	var imgUrl = '/head_icon/';
+    	if(item[7] !== ''){
+            $deletePhoto.myEnable(true); 
+    		imgUrl += getFileNameFromPath(item[7]);
+    	} else {
+            $deletePhoto.myEnable(false);
+    		imgUrl += PhotoUrl['P' + item[6]];
+    	}
+
+    	$photoImg.prop('src', imgUrl);
+    }
+
+    function getCurrentItem(index){
+    	if(currentShowList == PhonebookType.WHITE){
+    		return whites[index];
+    	} else {
+    		return blacks[index];
+    	}
+    }
+
+    $whiteList = $('#whiteList');
+	$whiteList.delegate('input[id=white0]', 'click', function(){
+
+		var selected = $(this).prop('checked');
+		$('input[id^=whiteList]').prop('checked', selected);
+
+	});
+	$whiteList.delegate('tr', 'click', function(e){
+		var $target = $(e.target);
+
+	    if( $target.is("input") ) {
+	    	return true;
+	    } 
+
+		var index = parseInt(this.id.substring(7));
+		if(index == 0){
+			return false;
+		}
+		var $this = $(this),
+			$input = $this.find('input'),
+			checked = $input.prop('checked');
+
+		$input.prop('checked', !checked);
+		if($this.hasClass('active-tr')){
+			$this.removeClass('active-tr');
+			setRecord();
+		} else {
+			$this.addClass('active-tr').siblings().removeClass('active-tr');
+			var item = getCurrentItem(index);
+			item[10] ? item[10] = index : item.push(index);
+			setRecord(item);
+		}
+	});
+
+	$blackList = $('#blackList');
+	$blackList.delegate('input[id=black0]', 'click', function(){    
+
+		var selected = $(this).prop('checked');
+		$('input[id^=blackList]').prop('checked', selected);
+
+	});
+	$blackList.delegate('tr', 'click', function(e){
+		var $target = $(e.target);
+
+	    if( $target.is("input") ) {
+	    	return true;
+	    } 
+
+		var index = parseInt(this.id.substring(7));
+		if(index == 0){
+			return false;
+		}
+		var $this = $(this),
+			$input = $this.find('input'),
+			checked = $input.prop('checked');
+
+		$input.prop('checked', !checked);
+		if($this.hasClass('active-tr')){
+			$this.removeClass('active-tr');
+			setRecord();
+		} else {
+			$this.addClass('active-tr').siblings().removeClass('active-tr');
+			var item = getCurrentItem(index);
+			item[10] ? item[10] = index : item.push(index);
+			setRecord(item);
+		}
+	});
+
+	$photo.change(function(){
+		var val = this.value || '0',
+			photoPath = $customPhotoPath.val(),
+			imgUrl = '/head_icon/';
+
+		if(photoPath !== '' && val === '0'){
+    		imgUrl += getFileNameFromPath(photoPath);
+    	} else {
+    		imgUrl += PhotoUrl['P' + val];
+    	}
+
+    	$photoImg.prop('src', imgUrl);
+	});
+
+	function uploadPhotoSuccess(){
+
+		AlertUtil.alertMsg(uploadCommon.uploadSuccess, function(){
+			$customPhotoPath.val(IframeUtil.jsonData.filepath);
+			alertEnable = false;
+			$('#btnEdit').click();
+			$('#btnSave').click();
+			$photoImg.prop('src', '/head_icon/' + getFileNameFromPath(IframeUtil.jsonData.filepath));
+
+		});
+	}
+
+	$uploadPhoto.click(function(){
+		if($idHide.val() === '-1'){
+			AlertUtil.alertMsg(showText.selectEmpty);
+			return false;
+		}
+		var item = getRecord();
+		if(!item[1]){
+			AlertUtil.alertMsg(showText.nameEmpty);
+			return false;
+		}
+
+		if(checkDumpName(item)){
+			AlertUtil.alertMsg(showText.nameExist);
+			return false;
+		}
+		IframeUtil.jsonData = null;
+		$('#photoIframe')[0].contentWindow.doPhotoUpload(uploadPhotoSuccess);
+	});
+
+	$deletePhoto.click(function(){
+		if($idHide.val() === '-1'){
+			AlertUtil.alertMsg(showText.selectEmpty);
+			return false;
+		}
+		var delName = $name.val();
+		Page.postJSON({
+			url: MenuItem.cContacts.delPhoto,
+			data: 'name=' + delName,
+			success: function(data){
+				//$photoImg.prop('src', '/head_icon/common.png');
+				$customPhotoPath.val('');
+				$('#btnEdit').click();
+			}
+		});
+	});
+
+    function savecontacts (){
+		var contacts = [], len, i;
+		for(i = 1, len = whites.length ; i < len; i++){
+			if(whites[i][10] != null){
+				whites[i].pop();
+			}
+			contacts.push(whites[i]);
+		}
+		for(i = 1, len = blacks.length ; i < len; i++){
+			if(blacks[i][10] != null){
+				blacks[i].pop();
+			}
+			contacts.push(blacks[i]);
+		}
+		sortPhonebook2(contacts);
+		if(origialStr == JSON.serializeToParms(contacts)){
+			AlertUtil.saveNoChange();
+			return false;
+    	}
+
+		var sendParams = [] ,item, params;
+		len = contacts.length;
+		if(len == 0){
+			params = 'count=0';
+		} else {
+			for(i = 0; i < len; i++){
+    			item = contacts[i];
+    			sendParams.push(String.format('t_{0}={1}&n_{0}={2}&o_{0}={3}&m_{0}={4}&ot_{0}={5}'
+    										  + '&a_{0}={6}&p_{0}={7}&c_{0}={8}&r_{0}={9}&group_{0}={10}',
+    											i+1, item[0], item[1], item[2], item[3],
+    											item[4], item[5], item[6], item[7], item[8], item[9]));
+    		}
+    		params = String.format("count={0}&{1}", len, sendParams.join('&'));
+		}
+
+		Page.postJSON({
+			url: MenuItem.cContacts.set,
+			data: params,
+			success: function(){
+				if(alertEnable){
+					AlertUtil.saveSuccess();
+				} 
+				alertEnable = true;
+				origialStr = JSON.serializeToParms(contacts);
+			}
+		});
+	}
+
+	$('#btnSave').click(function(e){
+        savecontacts();
+	});
+
+	$('#btnDel').click(function(){
+		AlertUtil.confirm(showText.delConfirm + '</br>' + showText.delConfirm1, function(r){
+			if(r){
+				var $items;
+				if(currentShowList == PhonebookType.WHITE){
+					$items = $('input[id^=whiteList]:checked');
+				} else {
+					$items = $('input[id^=blackList]:checked');
+				}
+
+				if($items.length == 0){
+		    		AlertUtil.alertMsg(showText.selectEmpty);
+		    		return false;
+		    	}
+
+				setRecord();
+				$items.each(function(){
+		    		var index = this.id.substring(9);
+		    			index = parseInt(index);
+		   			if(currentShowList == PhonebookType.WHITE){
+		   				whites[index] = false;
+		   			} else {
+		   				blacks[index] = false;
+		   			}
+		    	});
+
+				if(currentShowList == PhonebookType.WHITE){
+					whites = _.filter(whites, function(item){
+						return item != false;
+					});
+				} else {
+					blacks = _.filter(blacks, function(item){
+						return item != false;
+					});
+				}
+
+				renderData();
+
+				savecontacts();
+			}
+		});
+	});
+
+	$('#moveToBlack').click(function(){
+		var $items = $('input[id^=whiteList]:checked');
+
+		if($items.length == 0){
+			AlertUtil.alertMsg(showText.selectEmpty);
+    		return false;
+    	}
+		var totalLen = $items.length + blacks.length;
+		if(totalLen > MAX_BLACKLIST_LEN){
+			AlertUtil.alertMsg(showText.selectTooMuch);
+			return false;
+		}
+
+		$items.each(function(){
+    		var index = this.id.substring(9);
+    			index = parseInt(index);
+    		whites[index][0] = PhonebookType.BLACK;
+   			blacks.push(whites[index]);
+   			whites[index] = false;
+    	});
+
+		whites = _.filter(whites, function(item){
+			return item != false;
+		});
+
+		renderData();
+		savecontacts();
+	});
+
+	$('#moveToWhite').click(function(){
+		var $items = $('input[id^=blackList]:checked');
+
+		if($items.length == 0){
+			AlertUtil.alertMsg(showText.selectEmpty);
+    		return false;
+    	}
+		var totalLen = $items.length + blacks.length;
+		if(totalLen > MAX_PHONEBOOK_LEN){
+			AlertUtil.alertMsg(showText.selectTooMuch);
+			return false;
+		}
+
+		$items.each(function(){
+    		var index = this.id.substring(9);
+    			index = parseInt(index);
+    		blacks[index][0] = PhonebookType.WHITE; 
+    		whites.push(blacks[index]);
+    		blacks[index] = false;
+    	});
+
+		blacks = _.filter(blacks, function(item){
+			return item != false;
+		});
+
+		renderData();
+
+		savecontacts();
+	});
+
+	function checkDumpName(itemName, isAdd){
+		var len, i, item, name = itemName[1];
+		len = whites.length;
+		for(i = 1; i < len; i++){
+			item = whites[i];
+			if(isAdd){
+				if(item[1] == name){
+					return true;
+				}
+			} else {
+				if(item[1] == name && i != itemName[10]){
+					return true;
+				}
+			}
+		}
+
+		len = blacks.length;
+		for(i = 1; i < len; i++){
+			item = blacks[i];
+			if(isAdd){
+				if(item[1] == name){
+					return true;
+				}
+			} else {
+				if(item[1] == name && i != itemName[10]){
+					return true;
+				}
+			}
+		}
+	}
+
+	$('#btnAdd').click(function(){
+		if(currentShowList == PhonebookType.WHITE){
+			if(whites.length > MAX_PHONEBOOK_LEN){
+				AlertUtil.alertMsg(showText.phonebookFull);
+				return false;
+			}
+		} else {
+			if(blacks.length > MAX_BLACKLIST_LEN){
+			AlertUtil.alertMsg(showText.blacklistFull);
+				return false;
+			}
+		}
+
+		var item = getRecord();
+		if(!item[1]){
+			AlertUtil.alertMsg(showText.nameEmpty);
+			return false;
+		}
+
+		if(checkDumpName(item, true)){
+			AlertUtil.alertMsg(showText.nameExist);
+			return false;
+		}
+
+
+		if(currentShowList == PhonebookType.WHITE){
+			whites.push(item);
+		} else {
+			blacks.push(item);
+		}
+
+		setRecord();
+		renderData();
+	});
+
+	$('#btnEdit').click(function(){
+		var item = getRecord();
+		if(!item[1]){
+			AlertUtil.alertMsg(showText.nameEmpty);
+			return false;
+		}
+
+		if(checkDumpName(item)){
+			AlertUtil.alertMsg(showText.nameExist);
+			return false;
+		}
+
+		var index = item[10] || -1;
+		if(currentShowList == PhonebookType.WHITE){
+			if(index != -1){
+				whites[index] = item;
+			}
+		} else {
+			if(index != -1){
+				blacks[index] = item;
+			}
+		}
+
+		setRecord();
+		renderData();
+	});
+
+	$('#btnSearch').click(function(){
+		var item = getRecord();
+		if(!item[1] && !item[2] && !item[3] && !item[4]){
+			AlertUtil.alertMsg(showText.contentEmpty, function(){
+				$name.focus();
+			});
+
+			return false;
+		}
+		var searchLists, len, i, searchItem;
+		if(currentShowList == PhonebookType.WHITE){
+			searchLists = whites;
+		} else {
+			searchLists = blacks;
+		}
+		len = searchLists.length;
+		var isFind = false, failCount = 0;
+		for(i = 1; i < len; i++){
+			failCount = 0;
+			searchItem = searchLists[i];
+			//name
+			if(item[1]){
+				if(item[1] == searchItem[1]){
+					isFind = true;
+				} else {
+					failCount++;
+					isFind = false;
+				}
+			}
+			//officeNum
+			if(item[2]){
+				if(item[2] == searchItem[2]){
+					isFind = true;
+				} else {
+					failCount++;
+					isFind = false;
+				}
+			}
+
+			//mobileNum
+			if(item[3]){
+				if(item[3] == searchItem[3]){
+					isFind = true;
+				} else {
+					failCount++;
+					isFind = false;
+				}
+			}
+			//otherNum
+			if(item[4]){
+				if(item[4] == searchItem[4]){
+					isFind = true;
+				} else {
+					failCount++;
+					isFind = false;
+				}
+			}
+
+			if(isFind && failCount == 0){
+				break;
+			}
+		}
+		if(isFind && failCount == 0){
+			setRecord(searchItem);
+		} else {
+			setRecord();
+			AlertUtil.alertMsg(showText.notFind);
+		}
+	});
+
+	$('#importContacts').click(function(){
+		var $form = $('#uploadContacts'),
+			jsonData = null,
+			$importFile = $('#importFile'),
+			updateFileName = $importFile.val();
+
+		if(updateFileName === ''){
+			AlertUtil.fileIsEmpty();
+			return false;
+		}
+		if(/[\\\/]/.test(updateFileName)) {
+         	var matchs = updateFileName.match(/(.*)?[\\\/](.*)/);
+         	updateFileName = matchs[2];
+        }
+		AlertUtil.confirm(uploadCommon.uploadFilePrompt + '</br>' + updateFileName, function(r){
+			if(r){
+				$form.ajaxSubmit({
+		            url: MenuItem.cContacts.importContacts,
+		            type: 'POST',
+		            dataType: 'text',
+		            beforeSubmit: function() {          
+		                SysUtil.showProgress({
+		                	msg: uploadCommon.uploadMsg,
+		                	text: uploadCommon.uploadText,
+		                	checkStatus: function(){
+		                		return jsonData != null;
+		                	},
+		                	callback: function(){
+		                		$.messager.progress('close');
+		                		if(jsonData.return_code == 0){
+		                			AlertUtil.alertMsg(uploadCommon.uploadSuccess);
+		                		} else {
+		                			AlertUtil.alertMsg(uploadCommon.uploadFail);
+		                		}
+		                	}
+		                });
+
+		                return true;
+		            },
+		            success: function(data, statusText) {
+		            	try{
+		            		jsonData = JSON.parse(data);
+		            	}catch(ex){
+		            		jsonData = {return_code: -1};
+		            	}
+
+		            },
+		            error: function(responseText, statusText) {
+
+		            	jsonData = {return_code: -1};
+		            }
+		        });
+			}
+		});
+	});
+
+	$('#exportContacts').click(function(){
+		window.location.assign(MenuItem.cContacts.exportContacts);
+	});
+
+    $lis.eq(0).click();
+});
+</script>
+<div class="detail_box">
+	<div class="mytab_menu" id="mytab_menu">
+		<script type="text/template" id="mytab_menuTemp"> 
+    	<ul class="mytabs" id="tabsitems">
+			<li style="width: 50%;"><a href="javascript:;"><%- mytabMenu[0] %></a></li><!--
+			--><li style="width: 50%;"><a href="javascript:;"><%- mytabMenu[1] %></a></li>
+    	</ul>
+		</script>
+	</div>
+	<div class="main_box">
+		<div class="mytab_boxes">
+			<div>
+				<div id="whiteList">
+				<script type="text/template" id="whiteListTemp">
+            	<table class="list4">
+				<% _.each(lists, function(item, i){ %>
+					<% if(i == 0){ %>
+            		<tr id="whiteTr<%- i %>" style="font-weight: bold; background-color: #fff;">
+            			<td style="width: 9%;"><%- item[0] %></td>
+            			<td style="width: 15%;"><%- item[1] %></td>
+            			<td style="width: 20%;"><%- item[2] %></td>
+            			<td style="width: 20%;"><%- item[3] %></td>
+						<td><%- item[4] %></td>
+						<td style="width: 14%;"><%- item[5] %></td>
+						<td style="width: 4%;"><input type="checkbox" id="white0" /></td>
+            		</tr>
+					<%} else {%>
+					<tr id="whiteTr<%- i %>">
+            			<td class="list4-td-frist-border"><%- i %></td>
+            			<td class="list4-td-border"><%- item[1] %></td>
+            			<td class="list4-td-border"><%- item[2] %></td>
+            			<td class="list4-td-border"><%- item[3] %></td>
+						<td class="list4-td-border"><%- item[4] %></td>
+						<td class="list4-td-border">
+						<% if(item[5] == 7) {%>
+						<%- auto %>
+						<% } else {%>
+						<%- account %>&nbsp;<%- item[5] %>
+						<% }%>
+						</td>
+						<td class="list4-td-border"><input type="checkbox" id="whiteList<%- i %>"/></td>
+            		</tr>
+					<% } %>
+				<% }) %>
+            	</table>
+				</script>
+            	</div>
+           </div>
+           <div>
+            	<div id="blackList">
+            	<script type="text/template" id="blackListTemp">
+            	<table class="list4">
+				<% _.each(lists, function(item, i){ %>
+					<% if(i == 0){ %>
+            		<tr id="blackTr<%- i %>" style="font-weight: bold; background-color: #fff;">
+            			<td style="width: 9%;"><%- item[0] %></td>
+            			<td style="width: 15%;"><%- item[1] %></td>
+            			<td style="width: 20%;"><%- item[2] %></td>
+            			<td style="width: 20%;"><%- item[3] %></td>
+						<td><%- item[4] %></td>
+						<td style="width: 14%;"><%- item[5] %></td>
+						<td style="width: 4%;"><input type="checkbox" id="black0"/></td>
+            		</tr>
+					<%} else {%>
+					<tr id="blackTr<%- i %>">
+            			<td class="list4-td-frist-border"><%- i %></td>
+            			<td class="list4-td-border"><%- item[1] %></td>
+            			<td class="list4-td-border"><%- item[2] %></td>
+            			<td class="list4-td-border"><%- item[3] %></td>
+						<td class="list4-td-border"><%- item[4] %></td>
+						<td class="list4-td-border">
+						<% if(item[5] == 7) {%>
+						<%- auto %>
+						<% } else {%>
+						<%- account %>&nbsp;<%- item[5] %>
+						<% }%>
+						</td>
+						<td class="list4-td-border"><input type="checkbox" id="blackList<%- i %>"/></td>
+            		</tr>
+					<% } %>
+				<% }) %>
+            	</table>
+				</script>
+            	</div>
+            </div>
+        </div>
+    </div>
+    <div id="buttonDiv">
+    	<script type="text/template" id="buttonDivTemp">
+    	<button id="btnSave" type="button"><%- save %></button>
+    	&nbsp;&nbsp;
+    	<button id="btnDel" type="button"><%- del %></button>
+    	&nbsp;&nbsp;
+    	<button id="moveToBlack" type="button"><%- moveToBlack %></button>
+    	<button id="moveToWhite" type="button" style="display:none;"><%- moveToWhite %></button>
+		</script>
+    </div>
+    <div id="editDiv">
+	<script type="text/template" id="editDivTemp">
+	<table class="list2">
+		<tbody>
+			<tr class="head2">
+				<td colspan="3"><%- contacts %></td>
+			</tr>
+
+			<tr>
+				<td class="list2td1"></td>
+				<td class="list2td3"><span class="span-required">*</span><%- name %></td>
+				<td>
+					<input type="text" class="normal" id="name" name="name" maxlength="99"/>
+					<input type="hidden" id="group_name" name="group_name" />
+					<input type="hidden" id="idHide" name="idHide" value="-1"/>
+					<input type="hidden" id="customPhotoPath" name="customPhotoPath" value=""/>
+				</td>
+			</tr>
+			<tr>
+				<td class="list2td1"></td>
+				<td class="list2td3"><%- officeNum %></td>
+				<td>
+					<input type="text" class="normal" id="officeNum" name="officeNum" maxlength="99"/>
+				</td>
+			</tr>
+			<tr>
+				<td class="list2td1"></td>
+				<td class="list2td3"><%- mobileNum %></td>
+				<td>
+					<input type="text" class="normal" id="mobileNum" name="mobileNum" maxlength="47"/>
+				</td>
+			</tr>
+			<tr>
+				<td class="list2td1"></td>
+				<td class="list2td3"><%- otherNum %></td>
+				<td>
+					<input type="text" class="normal" id="otherNum" name="otherNum" maxlength="47"/>
+				</td>
+			</tr>
+			<tr>
+				<td class="list2td1"></td>
+				<td class="list2td3"><%- account %></td>
+				<td>
+					<select class="normal" id="account" name="account">
+						<option value="7"><%- accountOpt8 %></option>
+						<option value="1"><%- accountOpt1 %></option>
+						<option value="2"><%- accountOpt2 %></option>
+						<option value="3"><%- accountOpt3 %></option>
+						<option value="4"><%- accountOpt4 %></option>
+						<% if(model === 0) { %>
+						<option value="5"><%- accountOpt5 %></option>
+						<option value="6"><%- accountOpt6 %></option>
+						<% } %>
+					</select>
+				</td>
+			</tr>
+			<tr>
+				<td class="list2td1"></td>
+				<td class="list2td3"><%- ring %></td>
+				<td>
+					<select class="normal" id="ring" name="ring">
+						<% _.each(ringOpts, function(item, i){ %>
+							<option value="<%- i %>"><%- item %></option>
+						<% }) %>
+						<!--
+						<option value="0">Auto</option>
+						<option value="1">Ring1.wav</option>
+						<option value="2">Ring2.wav</option>
+						<option value="3">Ring3.wav</option>
+						<option value="4">Ring4.wav</option>
+						<option value="5">Ring5.wav</option>
+						<option value="6">Ring6.wav</option>
+						<option value="7">Ring7.wav</option>
+						<option value="8">Ring8.wav</option>
+						-->
+					</select>
+				</td>
+			</tr>
+			<tr>
+				<td class="list2td1"></td>
+				<td class="list2td3"><%- photo %></td>
+				<td>
+					<select class="normal" id="photo" name="photo">
+						<option value="0"><%- defaultPhoto %></option>
+						<option value="1">kid_f.png</option>
+						<option value="2">kid_m.png</option>
+						<option value="3">middle_f.png</option>
+						<option value="4">middle_m.png</option>
+						<option value="5">boy.png</option>
+						<option value="6">girl.png</option>
+						<option value="7">senior_f.png</option>
+						<option value="8">senior_m.png</option>
+					</select>
+					<span class="my-tooltips" title="<%- pictureSize %>">&nbsp;</span>
+				</td>
+			</tr>
+			<tr>
+				<td class="list2td1"></td>
+				<td class="list2td3">
+					<div style="width:100px; text-align: center;">
+						<img id="photoImg" src="/head_icon/common.png" style="width:100px; height: 100px;" /><br />
+						<button id="deletePhoto" type="button"><%- deletePhoto %></button>
+					</div>
+				</td>
+				<td>
+					<iframe src="/html/contacts/photo.html" id="photoIframe" frameborder="0" height="25" scrolling="no" style="display: block;"></iframe>
+					<button type="button" id="uploadPhoto"><%- uploadPhoto %></button>
+				</td>
+			</tr>
+			<tr>
+				<td colspan="3">
+					<div style="padding: 5px 0; text-align: center;">
+						<button id="btnAdd" type="button"><%- add %></button>
+					   	&nbsp;&nbsp;
+					   	<button id="btnEdit" type="button"><%- edit %></button>
+					   	&nbsp;&nbsp;
+					   	<button id="btnSearch" type="button"><%- search %></button>
+					</div>
+				</td>
+			</tr>
+		</tbody>
+
+	</table>
+	<table class="list2">
+		<tbody>
+			<tr class="head2">
+				<td colspan="3"><%- importAndExport %></td>
+			</tr>
+			<tr>
+				<td class="list2td1"></td>
+				<td class="list2td3"><%- importFile %></td>
+				<td>
+					<form id="uploadContacts" enctype="multipart/form-data" method="post">
+						<input type="file" id="importFile" name="importFile"/>
+					</form>
+				</td>
+			</tr>
+			<tr>
+				<td class="list2td1"></td>
+				<td class="list2td3"></td>
+				<td>
+					<button type="button" id="importContacts"><%- importStr %></button>
+					&nbsp;&nbsp;
+					<button type="button" id="exportContacts"><%- exportStr %></button>
+				</td>
+			</tr>
+		</tbody>
+	</table>
+	</script>
+    </div>
+</div>

@@ -1,0 +1,796 @@
+<script type="text/javascript">
+$(document).ready(function(){
+	phonePreferenceHtml.form1.model = Page.model;
+	TempUtil.render('form1Temp', 'form1', phonePreferenceHtml.form1);
+	var origialJSON,
+		origialStr,
+		$form = $('#form1'),
+		$activeWallpaperFilename = $('#activeWallpaperFilename'),
+		$ringTones = $('#ringTones'),
+		$activeScreensaverFilename = $('#activeScreensaverFilename');
+
+	function createRingListOption(data)
+	{
+		var ringList = data.ringTonesList || [],
+			len = ringList.length,
+			i, result = [];
+
+		for(i = 0; i < len; i++)
+		{
+			if(i + 1== data.ringTones)
+			{
+				result.push(String.format('<option value="{0}" selected>{1}</option>', i + 1, ringList[i]));
+			}
+			else
+			{
+				result.push(String.format('<option value="{0}">{1}</option>', i + 1, ringList[i]));
+			}
+		}
+		return result.join('');
+	}
+	function createOption(data){
+		var result = [], 
+			wallpaperList = data.wallpaperList || [],
+			activeWallpaperFilename = data.activeWallpaperFilename,
+			len = wallpaperList.length,
+			i;
+
+		for(i = 0; i < len; i++){
+			if(activeWallpaperFilename === wallpaperList[i]){
+				result.push(String.format('<option value="{0}" selected>{0}</option>', wallpaperList[i]));
+			} else {
+				result.push(String.format('<option value="{0}">{0}</option>', wallpaperList[i]));
+			}
+		}
+
+		return result.join('');
+	}
+
+	function createOption_Screensaver(data){
+		var result = [], 
+			screensaverList = data.screensaverList || [],
+			len = screensaverList.length,
+			i;
+
+		for(i = 0; i < len; i++){
+		    result.push(String.format('<option value="{0}">{0}</option>', screensaverList[i]));
+		}
+
+		return result.join('');
+	}
+
+	function renderData(data){
+		Page.setFormFieldValue('dhcpTime', data.dhcpTime);
+		Page.setFormFieldValue('timeZone', data.timeZone);
+		Page.setFormFieldValue('primaryNtp', data.primaryNtp);
+		Page.setFormFieldValue('secondaryNtp', data.secondaryNtp);
+		Page.setFormFieldValue('updateInterval', data.updateInterval);
+
+		Page.setFormFieldValue('daylight', data.daylight);
+
+		Page.setRadioFieldValue('fixedType', data.fixedType);
+
+		Page.setFormFieldValue('startMonth', data.startMonth);
+		Page.setFormFieldValue('startDate', data.startDate);
+		Page.setFormFieldValue('startHourDay', data.startHourDay);
+		Page.setFormFieldValue('startDayWeek', data.startDayWeek);
+		Page.setFormFieldValue('startWeekMonth', data.startWeekMonth);
+
+		Page.setFormFieldValue('stopMonth', data.stopMonth);
+		Page.setFormFieldValue('stopDate', data.stopDate);
+		Page.setFormFieldValue('stopHourDay', data.stopHourDay);
+		Page.setFormFieldValue('stopDayWeek', data.stopDayWeek);
+		Page.setFormFieldValue('stopWeekMonth', data.stopWeekMonth);
+
+		Page.setFormFieldValue('offset', data.offset);
+
+		Page.setFormFieldValue('manualTime', data.manualTime);
+		Page.setFormFieldValue('dateYmd', data.dateYmd);
+		Page.setFormFieldValue('timeHms', data.timeHms);
+		Page.setFormFieldValue('timeFormat', data.timeFormat);
+		Page.setFormFieldValue('dateFormat', data.dateFormat);
+
+		Page.setFormFieldValue('backlightTime', data.backlightTime);
+		Page.setFormFieldValue('backlightLevel', data.backlightLevel);
+		Page.setFormFieldValue('expandBacklightLevel', data.expandBacklightLevel);
+		Page.setFormFieldValue('screensaver_timeout', data.screensaver_timeout);
+		Page.setFormFieldValue('ringTones', data.ringTones);
+
+		if(Page.model === Model.R4){
+			Page.setFormFieldValue('slaveBacklightLevel', data.slaveBacklightLevel);
+			Page.setFormFieldValue('slaveLcdContract', data.slaveLcdContract);
+		}
+
+		$ringTones.html(createRingListOption(data));
+		$activeWallpaperFilename.html(createOption(data));
+		$activeScreensaverFilename.html(createOption_Screensaver(data));
+	}
+
+	function initPage(){
+		var num_15_86400 = {
+			min: 15,
+			max: 86400
+		},
+		num_1_31 = {
+			min: 1,
+			max: 31
+		},
+		num_0_23 = {
+			min: 0,
+			max: 23
+		},
+		num_0300_300 = {
+			min: -300,
+			max: 300
+		};
+		$('#updateInterval').numberbox(num_15_86400);
+
+		$('#startDate').numberbox(num_1_31);
+		$('#startHourDay').numberbox(num_0_23);
+
+		$('#stopDate').numberbox(num_1_31);
+		$('#stopHourDay').numberbox(num_0_23);
+
+		$('#offset').numberbox(num_0300_300);
+
+		$('#save').linkbutton();  
+		$('#reset').linkbutton(); 
+
+		$('#daylight').change();
+		if(origialJSON.daylight == bool.Enable){
+			$('input[name="fixedType"]').change();
+		}
+		$('#manualTime').change();
+	}
+
+	Page.postJSON({
+		url: MenuItem.pPreference.get,
+		success: function(data){
+			origialJSON = data;
+
+			renderData(data);
+			initPage();
+
+			Page.$iframe.show();
+			origialStr = $form.formSerialize();
+			Page.initTips();
+		}
+	});
+
+	var $group1;
+	$('#daylight').change(function(){
+		var val = this.value;
+		if(!$group1){
+			$group1 = $('#form1 .group1');
+		}
+		if(val == bool.Enable){
+			$group1.myEnable(true);
+			$('input[name="fixedType"]').change();
+		} else {
+			$group1.myEnable(false);
+		}
+
+	});
+
+	var $group2;
+	$('#manualTime').change(function(){
+		var val = this.value;
+		if(!$group2){
+			$group2 = $('#form1 .group2');
+		}
+		if(val == bool.Enable){
+			$group2.myEnable(true);
+		} else {
+			$group2.myEnable(false);
+		}
+	});
+
+	var $group3, $group4;
+	$('input[name="fixedType"]').change(function(){
+		var selected = $("input[name='fixedType']:checked").val();
+		if(!$group3){
+			$group3 = $('#form1 .group3');
+		}
+		if(!$group4){
+			$group4 = $('#form1 .group4');
+		}
+		if(selected == 0){
+			$group3.myEnable(true);
+			$group4.myEnable(false);
+		} else {
+			$group3.myEnable(false);
+			$group4.myEnable(true);
+		}
+	});
+
+	$('#timeZone').change(function(){
+		var timeZoneSelected = this.value;
+		if(phonePreferenceHtml.form1.timeZoneDaylightMap[timeZoneSelected] == 0){
+			window.form1.daylight.value = 0; //disable
+		}
+		else if(phonePreferenceHtml.form1.timeZoneDaylightMap[timeZoneSelected] == 1){
+			window.form1.daylight.value = 2; //auto
+		}
+		$('#daylight').change();
+	});
+
+	$('#deleteWallpaper').click(function(){
+		var delWallpaper = $activeWallpaperFilename.val();
+		if(delWallpaper.indexOf("pictures-") == 0){
+			AlertUtil.systemFileCannotDelete();
+			return false;
+		}
+		Page.postJSON({
+			url: MenuItem.pPreference.delWallpaper,
+			data: 'activeWallpaperFilename=' + delWallpaper,
+			success: function(data){
+				_.each($activeWallpaperFilename.find('option'), function(item){
+					if(item.value === delWallpaper){
+						$(item).remove();
+					}
+				});
+			}
+		});
+	});
+
+	$('#deleteScreensaver').click(function(){
+		var delScreensaver = $activeScreensaverFilename.val();
+		if(delScreensaver.indexOf("pictures-") == 0){
+			AlertUtil.systemFileCannotDelete();
+			return false;
+		}
+		Page.postJSON({
+			url: MenuItem.pPreference.delScreensaver,
+			data: 'activeScreensaverFilename=' + delScreensaver,
+			success: function(data){
+				_.each($activeScreensaverFilename.find('option'), function(item){
+					if(item.value === delScreensaver){
+						$(item).remove();
+					}
+				});
+			}
+		});
+	});
+
+	$('#save').click(function(){
+		if(ValidHelper.invalid($form)){
+			AlertUtil.invalidVal();
+			return false;
+		}
+		if(origialStr == $form.formSerialize()){
+			AlertUtil.saveNoChange();
+			return false;
+		}
+		var json = JSON.parmsToJSON($form);
+		Page.postJSON({
+			url: MenuItem.pPreference.set,
+			data: JSON.serializeToParms(json),
+			success: function(data){
+				AlertUtil.saveSuccess();
+				origialJSON = json;
+				origialStr = $form.formSerialize();
+			}
+		});
+	});
+
+	var $inputNums = null;
+	$('#reset').click(function(){
+		if(origialJSON){
+			renderData(origialJSON);
+			$inputNums = ValidHelper.numHelper($inputNums);
+			$('#daylight').change();
+			if(origialJSON.daylight == bool.Enable){
+				$('input[name="fixedType"]').change();
+			}
+			$('#manualTime').change();
+		}
+	});
+
+	function getDate() {
+    	return new Date().format('yyyy-mm-dd');
+    }
+	function getTime() {
+    	return new Date().format('HH:MM:ss');
+    }
+	$('#autoDate').click(function(){
+    	$('#dateYmd').val(getDate());
+    });
+	$('#autoTime').click(function(){
+    	$('#timeHms').val(getTime());
+    });
+
+	function replaceRingToneCallback(){
+		AlertUtil.alertMsg(uploadCommon.uploadSuccess, function(){
+			$activeWallpaperFilename.append(String.format('<option value="{0}">{0}</option>', IframeUtil.jsonData.filename));
+		});
+	}
+	var replaceRingTone = $('#replaceRingTone')[0];
+	$('#replaceRingToneButton').click(function(){
+		IframeUtil.jsonData = null;
+		replaceRingTone.contentWindow.doReplaceRingToneUpload(replaceRingToneCallback);
+	});
+	$('#cancelRingToneButton').click(function(){
+		replaceRingTone.contentWindow.doCancelUpload();
+	});
+
+
+
+
+
+	function wallpaperUploadCallback(){
+		AlertUtil.alertMsg(uploadCommon.uploadSuccess, function(){
+			$activeWallpaperFilename.append(String.format('<option value="{0}">{0}</option>', IframeUtil.jsonData.filename));
+		});
+	}
+	var wallpaper = $('#wallpaper')[0];
+	$('#uploadWallpaper').click(function(){
+		IframeUtil.jsonData = null;
+		wallpaper.contentWindow.doWallpaperUpload(wallpaperUploadCallback);
+	});
+	$('#cancelWallpaper').click(function(){
+		wallpaper.contentWindow.doCancelUpload();
+	});
+
+	function screensaverUploadCallback(){
+		AlertUtil.alertMsg(uploadCommon.uploadSuccess, function(){
+			$activeScreensaverFilename.append(String.format('<option value="{0}">{0}</option>', IframeUtil.jsonData.filename));
+		});
+	}
+	var screensaver = $('#screensaver')[0];
+	$('#uploadScreensaver').click(function(){
+		IframeUtil.jsonData = null;
+		screensaver.contentWindow.doScreensaverUpload(screensaverUploadCallback);
+	});
+	$('#cancelScreensaver').click(function(){
+		screensaver.contentWindow.doCancelUpload();
+	});
+});
+</script>
+<div class="detail_box">
+	<form id="form1">
+	<script type="text/template" id="form1Temp">
+	<table class="list2">
+		<tbody>
+			<tr>
+				<td class="list2td1"></td>
+				<td class="list2td3"><%- dhcpTime %></td>
+				<td>
+					<select id="dhcpTime" name="dhcpTime" class="normal">
+						<option value="0"><%- disable %></option>
+						<option value="1"><%- enable %></option>
+					</select>
+					<span class="my-tooltips" title="<%- tips.dhcpTime %>">&nbsp;</span>
+				</td>
+			</tr>
+			<tr>
+				<td class="list2td1"></td>
+				<td class="list2td3"><%- timeZone %></td>
+				<td>
+					<select id="timeZone" name="timeZone" class="normal">
+					<% _.each(timeZoneOpts, function(item, i){ %>
+						<option value="<%- timeZoneOptsIndex[i] %>"><%= item %></option>
+					<% }) %>
+					</select>
+					<span class="my-tooltips" title="<%- tips.timeZone %>">&nbsp;</span>
+				</td>
+			</tr>
+			<tr>
+				<td class="list2td1"></td>
+				<td class="list2td3"><%- primaryNtp %></td>
+				<td>
+					<input type="text" class="normal" id="primaryNtp" name="primaryNtp" maxlength="28"/>
+				</td>
+			</tr>
+			<tr>
+				<td class="list2td1"></td>
+				<td class="list2td3"><%- secondaryNtp %></td>
+				<td>
+					<input type="text" class="normal" id="secondaryNtp" name="secondaryNtp" maxlength="28"/>
+				</td>
+			</tr>
+			<tr>
+				<td class="list2td1"></td>
+				<td class="list2td3"><%- updateInterval %></td>
+				<td>
+					<input type="text" class="normal" id="updateInterval" name="updateInterval"/>(15~86400)
+					<span class="my-tooltips" title="<%- tips.updateInterval %>">&nbsp;</span>
+				</td>
+			</tr>
+			<tr>
+				<td class="list2td1"></td>
+				<td class="list2td3"><%- daylight %></td>
+				<td>
+					<select id="daylight" name="daylight" class="normal">
+						<option value="2"><%- auto %></option>
+						<option value="0"><%- disable %></option>
+						<option value="1"><%- enable %></option>
+					</select>
+					<span class="my-tooltips" title="<%- tips.daylight %>">&nbsp;</span>
+				</td>
+			</tr>
+			<tr>
+				<td class="list2td1"></td>
+				<td class="list2td3"><%- fixedType %></td>
+				<td>
+					<input type="radio" id="fixedType0" name="fixedType" value="0" class="radio group1"/>
+					<label class="pointer" for="fixedType0"><%- fixedTypeOpt0 %></label>
+					<input type="radio" id="fixedType1" name="fixedType" value="1" checked="checked" class="radio group1"/>
+					<label class="pointer" for="fixedType1"><%- fixedTypeOpt1 %></label>
+				</td>
+			</tr>
+			<tr>
+				<td class="list2td1"></td>
+				<td class="list2td3"><%- startMonth %></td>
+				<td>
+					<select id="startMonth" name="startMonth" class="normal group1">
+						<option value="1"><%- January %></option>
+		                <option value="2"><%- February %></option>
+		                <option value="3"><%- March %></option>
+		                <option value="4"><%- April %></option>
+		                <option value="5"><%- May %></option>
+		                <option value="6"><%- June %></option>
+		                <option value="7"><%- July %></option>
+		                <option value="8"><%- August %></option>
+		                <option value="9"><%- September %></option>
+		                <option value="10"><%- October %></option>
+		                <option value="11"><%- November %></option>
+		                <option value="12"><%- December %></option>
+					</select>
+				</td>
+			</tr>
+			<tr>
+				<td class="list2td1"></td>
+				<td class="list2td3"><%- startDate %></td>
+				<td>
+					<input type="text" class="normal group1 group3" id="startDate" name="startDate"/>
+				</td>
+			</tr>
+			<tr>
+				<td class="list2td1"></td>
+				<td class="list2td3"><%- startHourDay %></td>
+				<td>
+					<input type="text" class="normal group1" id="startHourDay" name="startHourDay"/>
+				</td>
+			</tr>
+			<tr>
+				<td class="list2td1"></td>
+				<td class="list2td3"><%- startDayWeek %></td>
+				<td>
+					<select id="startDayWeek" name="startDayWeek" class="normal group1 group4">
+						<option value="0"><%- Sunday %></option>
+		                <option value="1"><%- Monday %></option>
+		                <option value="2"><%- Tuesday %></option>
+		                <option value="3"><%- Wednesday %></option>
+		                <option value="4"><%- Thursday %></option>
+		                <option value="5"><%- Friday %></option>
+		                <option value="6"><%- Saturday %></option>
+					</select>
+				</td>
+			</tr>
+			<tr>
+				<td class="list2td1"></td>
+				<td class="list2td3"><%- startWeekMonth %></td>
+				<td>
+					<select id="startWeekMonth" name="startWeekMonth" class="normal group1 group4">
+						<option value="1"><%- firstInMonth %></option>
+		                <option value="2"><%- secondInMonth %></option>
+		                <option value="3"><%- thirdInMonth %></option>
+		                <option value="4"><%- fourthInMonth %></option>
+		                <option value="5"><%- lastInMonth %></option>
+					</select>
+				</td>
+			</tr>
+			<tr>
+				<td class="list2td1"></td>
+				<td class="list2td3"><%- stopMonth %></td>
+				<td>
+					<select id="stopMonth" name="stopMonth" class="normal group1">
+						<option value="1"><%- January %></option>
+		                <option value="2"><%- February %></option>
+		                <option value="3"><%- March %></option>
+		                <option value="4"><%- April %></option>
+		                <option value="5"><%- May %></option>
+		                <option value="6"><%- June %></option>
+		                <option value="7"><%- July %></option>
+		                <option value="8"><%- August %></option>
+		                <option value="9"><%- September %></option>
+		                <option value="10"><%- October %></option>
+		                <option value="11"><%- November %></option>
+		                <option value="12"><%- December %></option>
+					</select>
+				</td>
+			</tr>
+			<tr>
+				<td class="list2td1"></td>
+				<td class="list2td3"><%- stopDate %></td>
+				<td>
+					<input type="text" id="stopDate" name="stopDate" class="normal group1 group3"/>
+				</td>
+			</tr>
+			<tr>
+				<td class="list2td1"></td>
+				<td class="list2td3"><%- stopHourDay %></td>
+				<td>
+					<input type="text" id="stopHourDay" name="stopHourDay" class="normal group1"/>
+				</td>
+			</tr>
+			<tr>
+				<td class="list2td1"></td>
+				<td class="list2td3"><%- stopDayWeek %></td>
+				<td>
+					<select id="stopDayWeek" name="stopDayWeek" class="normal group1 group4">
+						<option value="0"><%- Sunday %></option>
+		                <option value="1"><%- Monday %></option>
+		                <option value="2"><%- Tuesday %></option>
+		                <option value="3"><%- Wednesday %></option>
+		                <option value="4"><%- Thursday %></option>
+		                <option value="5"><%- Friday %></option>
+		                <option value="6"><%- Saturday %></option>
+					</select>
+				</td>
+			</tr>
+			<tr>
+				<td class="list2td1"></td>
+				<td class="list2td3"><%- stopWeekMonth %></td>
+				<td>
+					<select id="stopWeekMonth" name="stopWeekMonth" class="normal group1 group4">
+						<option value="1"><%- firstInMonth %></option>
+		                <option value="2"><%- secondInMonth %></option>
+		                <option value="3"><%- thirdInMonth %></option>
+		                <option value="4"><%- fourthInMonth %></option>
+		                <option value="5"><%- lastInMonth %></option>
+					</select>
+				</td>
+			</tr>
+			<tr>
+				<td class="list2td1"></td>
+				<td class="list2td3"><%- offset %></td>
+				<td>
+					<input type="text" id="offset" name="offset" class="normal group1"/>(-300~300)
+				</td>
+			</tr>
+			<tr>
+				<td class="list2td1"></td>
+				<td class="list2td3"><%- manualTime %></td>
+				<td>
+					<select id="manualTime" name="manualTime" class="normal">
+						<option value="0"><%- disable %></option>
+		                <option value="1"><%- enable %></option>		             
+					</select>
+					<span class="my-tooltips" title="<%- tips.manualTime %>">&nbsp;</span>
+				</td>
+			</tr>
+			<tr>
+				<td class="list2td1"></td>
+				<td class="list2td3"><%- dateYmd %></td>
+				<td>
+					<input type="text" id="dateYmd" name="dateYmd" class="normal group2" maxlength="31"/>
+					<input type="button" id="autoDate" class="group2 my-button" value="<%- autoDate %>"/>
+				</td>
+			</tr>
+			<tr>
+				<td class="list2td1"></td>
+				<td class="list2td3"><%- timeHms %></td>
+				<td>
+					<input type="text" id="timeHms" name="timeHms" class="normal group2" maxlength="31"/>
+					<input type="button" id="autoTime" class="group2 my-button" value="<%- autoTime %>"/>
+				</td>
+			</tr>
+			<tr>
+				<td class="list2td1"></td>
+				<td class="list2td3"><%- timeFormat %></td>
+				<td>
+					<select id="timeFormat" name="timeFormat" class="normal">
+						<option value="1"><%- timeFormatOpt1 %></option>
+		                <option value="0"><%- timeFormatOpt0 %></option>		             
+					</select>
+					<span class="my-tooltips" title="<%- tips.timeFormat %>">&nbsp;</span>
+				</td>
+			</tr>
+			<tr>
+				<td class="list2td1"></td>
+				<td class="list2td3"><%- dateFormat %></td>
+				<td>
+					<select id="dateFormat" name="dateFormat" class="normal">
+						 <option value="0">WWW MMM DD</option>
+		                 <option value="1">DD-MMM-YY</option>
+		                 <option value="2">YYYY-MM-DD</option>
+		                 <option value="3">DD/MM/YYYY</option>
+		                 <option value="4">MM/DD/YY</option>
+		                 <option value="5">DD MMM YYYY</option>
+		                 <option value="6">WWW DD MMM</option>	             
+					</select>
+					<span class="my-tooltips" title="<%- tips.dateFormat %>">&nbsp;</span>
+				</td>
+			</tr>
+			<tr>
+				<td class="list2td1"></td>
+				<td class="list2td3"><%- backlightTime %></td>
+				<td>
+					<select id="backlightTime" name="backlightTime" class="normal">
+						 <option value="0"><%- backlightTimeOpt0 %></option>
+		                 <option value="60"><%- backlightTimeOpt1 %></option>
+		                 <option value="120"><%- backlightTimeOpt2 %></option>
+		                 <option value="180"><%- backlightTimeOpt3 %></option>
+		                 <option value="600"><%- backlightTimeOpt4 %></option>
+		                 <option value="1800"><%- backlightTimeOpt5 %></option>		                          
+					</select>
+					<span class="my-tooltips" title="<%- tips.backlightTime %>">&nbsp;</span>
+				</td>
+			</tr>
+			<tr>
+				<td class="list2td1"></td>
+				<td class="list2td3"><%- backlightLevel %></td>
+				<td>
+					<select id="backlightLevel" name="backlightLevel" class="normal">
+						 <option value="1">1</option>
+		                 <option value="2">2</option>
+		                 <option value="3">3</option>
+		                 <option value="4">4</option>
+		                 <option value="5">5</option>
+		                 <option value="6" selected="selected">6</option>
+						 <option value="7">7</option>
+		                 <option value="8">8</option>
+		                 <option value="9">9</option>
+					</select>
+					<span class="my-tooltips" title="<%- tips.backlightLevel %>">&nbsp;</span>
+				</td>
+			</tr>
+			<% if(model === 0) { %>
+			<tr>
+				<td class="list2td1"></td>
+				<td class="list2td3"><%- slaveBacklightLevel %></td>
+				<td>
+					<select id="slaveBacklightLevel" name="slaveBacklightLevel" class="normal">
+						 <option value="1">1</option>
+		                 <option value="2">2</option>
+		                 <option value="3">3</option>
+		                 <option value="4">4</option>
+		                 <option value="5">5</option>
+		                 <option value="6" selected="selected">6</option>
+						 <option value="7">7</option>
+		                 <option value="8">8</option>
+		                 <option value="9">9</option>
+					</select>
+				</td>
+			</tr>
+			<% } %>
+			<tr>
+				<td class="list2td1"></td>
+				<td class="list2td3"><%- expandBacklightLevel %></td>
+				<td>
+					<select id="expandBacklightLevel" name="expandBacklightLevel" class="normal">
+						 <option value="1">1</option>
+		                 <option value="2">2</option>
+		                 <option value="3">3</option>
+		                 <option value="4">4</option>
+		                 <option value="5">5</option>
+		                 <option value="6" selected="selected">6</option>
+						 <option value="7">7</option>
+		                 <option value="8">8</option>
+		                 <option value="9">9</option>
+					</select>
+				</td>
+			</tr>
+			<% if(model === 0) { %>
+			<tr>
+				<td class="list2td1"></td>
+				<td class="list2td3"><%- slaveLcdContract %></td>
+				<td>
+					<select id="slaveLcdContract" name="slaveLcdContract" class="normal">
+						 <option value="1">1</option>
+		                 <option value="2">2</option>
+		                 <option value="3">3</option>
+		                 <option value="4">4</option>
+		                 <option value="5">5</option>
+		                 <option value="6" selected="selected">6</option>
+						 <option value="7">7</option>
+		                 <option value="8">8</option>
+		                 <option value="9">9</option>
+					</select>
+				</td>
+			</tr>
+			<% } %>
+			<tr>
+				<td class="list2td1"></td>
+				<td class="list2td3"><%- ringTones %></td>
+				<td>
+					<select id="ringTones" name="ringTones" class="normal">
+					</select>
+					<span class="my-tooltips" title="<%- tips.ringTones %>">&nbsp;</span>
+				</td>
+			</tr>
+
+			<tr>
+				<td class="list2td1"></td>
+				<td class="list2td3"><%- replaceRingTone %></td>
+				<td>
+					<iframe src="/html/phone/replaceRingTone.html" id="replaceRingTone" frameborder="0" height="25" scrolling="no" style="vertical-align: middle; width: 200px;"></iframe>
+					<span class="my-tooltips" title="<%- tips.replaceRingTone %>">&nbsp;</span>
+				</td>
+			</tr>
+			<tr>
+				<td class="list2td1"></td>
+				<td class="list2td3"></td>
+				<td>
+					<button type="button" id="replaceRingToneButton"><%- uploadWallpaper %></button>
+					<button type="button" id="cancelRingToneButton"><%- cancelWallpaper %></button>
+				</td>
+			</tr>
+
+			<tr>
+				<td class="list2td1"></td>
+				<td class="list2td3"><%- wallpaper %></td>
+				<td>
+					<select id="activeWallpaperFilename" name="activeWallpaperFilename" class="normal">
+					</select>
+					<button type="button" id="deleteWallpaper"><%- delWallpaper %></button>
+				</td>
+			</tr>
+			<tr>
+				<td class="list2td1"></td>
+				<td class="list2td3"></td>
+				<td>
+					<iframe src="/html/phone/wallpaper.html" id="wallpaper" frameborder="0" height="25" scrolling="no"></iframe>
+				</td>
+			</tr>
+			<tr>
+				<td class="list2td1"></td>
+				<td class="list2td3"></td>
+				<td>
+					<button type="button" id="uploadWallpaper"><%- uploadWallpaper %></button>
+					<button type="button" id="cancelWallpaper"><%- cancelWallpaper %></button>
+				</td>
+			</tr>
+
+			<tr>
+				<td class="list2td1"></td>
+				<td class="list2td3"><%- screensaver %></td>
+				<td>
+					<select id="activeScreensaverFilename" name="activeScreensaverFilename" class="normal">
+					</select>
+					<button type="button" id="deleteScreensaver"><%- delWallpaper %></button>
+				</td>
+			</tr>
+			<tr>
+				<td class="list2td1"></td>
+				<td class="list2td3"></td>
+				<td>
+					<iframe src="/html/phone/screensaver.html" id="screensaver" frameborder="0" height="25" scrolling="no"></iframe>
+				</td>
+			</tr>
+			<tr>
+				<td class="list2td1"></td>
+				<td class="list2td3"></td>
+				<td>
+					<button type="button" id="uploadScreensaver"><%- uploadWallpaper %></button>
+					<button type="button" id="cancelScreensaver"><%- cancelWallpaper %></button>
+				</td>
+			</tr>
+			<tr>
+				<td class="list2td1"></td>
+				<td class="list2td3"><%- screensaver_timeout %></td>
+				<td>
+					<select id="screensaver_timeout" name="screensaver_timeout" class="normal">
+						 <option value="0"><%- screensaver_timeoutOpt0 %></option>
+		                 <option value="1"><%- screensaver_timeoutOpt1 %></option>
+		                 <option value="2"><%- screensaver_timeoutOpt2 %></option>
+		                 <option value="5"><%- screensaver_timeoutOpt3 %></option>
+		                 <option value="10"><%- screensaver_timeoutOpt4 %></option>
+		                 <option value="30"><%- screensaver_timeoutOpt5 %></option>
+					</select>
+					<span class="my-tooltips" title="<%- tips.screensaver_timeout %>">&nbsp;</span>
+				</td>
+			</tr>
+		</tbody>
+	</table>
+
+	<div class="page-button">
+		<a id="save" href="javascript:;"><%- butConfirm %></a> 
+		&nbsp;&nbsp;&nbsp;&nbsp;
+		&nbsp;&nbsp;&nbsp;&nbsp;
+		<a id="reset" href="javascript:;"><%- butCancel %></a>  
+	</div>
+	</script>
+	</form>
+</div>

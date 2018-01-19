@@ -1,0 +1,175 @@
+<script type="text/javascript">
+$(document).ready(function(){
+	
+	TempUtil.render('mytab_menuTemp', 'mytab_menu', {mytabMenu: phoneCallInfoHtml.mytabMenu});
+	
+	var origialJSON,
+		listTemp = $('#dialedTemp').html(),
+		firstRequest = true;
+		CallInfo = {
+			DIALED: 0,
+			MISSED: 2,
+			RECEIVED: 1,
+			FORWARDED: 3
+		};
+	
+	function renderData(data){
+		var dialeds = [],
+			misseds = [],
+			receiveds = [],
+			forwardeds = [];
+		
+		dialeds.push(phoneCallInfoHtml.tableHeader);
+		misseds.push(phoneCallInfoHtml.tableHeader);
+		receiveds.push(phoneCallInfoHtml.tableHeader);
+		forwardeds.push(phoneCallInfoHtml.tableHeader);
+		
+		var i, len = data.length, item,
+			timezoneOffset = (new Date().getTimezoneOffset()) * 60;
+		for(i = 0; i < len; i++){			
+			item = data[i];
+			if(item[1]){
+				item[1] = new Date(1000 * (item[1] + timezoneOffset)).format('yyyy/m/d HH:MM');
+			}
+			if(item[2]){
+				item[2] = translate_duration(item[2]);
+			}
+			 
+			if(item[0] == CallInfo.DIALED){
+				dialeds.push(item);
+			} else if(item[0] == CallInfo.MISSED){
+				misseds.push(item);
+			} else if(item[0] == CallInfo.RECEIVED){
+				receiveds.push(item);
+			} else if(item[0] == CallInfo.FORWARDED){
+				forwardeds.push(item);
+			}
+		}
+		
+		TempUtil.render2(listTemp, 'dialed', {lists: dialeds});
+		TempUtil.render2(listTemp, 'missed', {lists: misseds});
+		TempUtil.render2(listTemp, 'received', {lists: receiveds});
+		TempUtil.render2(listTemp, 'forwarded', {lists: forwardeds});
+	}
+	
+	function translate_duration(duration)
+	{
+		var hour, min, sec, tmp;
+		var time = parseInt(duration);
+		hour = parseInt(duration / (60 * 60));
+		tmp = parseInt(duration % (60 * 60));
+		min = parseInt(tmp / 60);
+		sec = parseInt(tmp % 60);
+		if(hour <= 9)
+		{
+			hour = "0" + hour;
+		}
+		if(min <= 9)
+		{
+			min = "0" + min;
+		}
+		if(sec <= 9)
+		{
+			sec = "0" + sec;
+		}
+		return ("" + hour + ":" + min + ":" + sec);
+	}
+
+	var $lis = $("ul.mytabs a");
+    var $boxes = $("div.mytab_boxes > div");
+    $lis.click(function() {
+		$lis.removeClass("current");
+		$(this).addClass("current");
+		var pannelIndex = $lis.index(this);
+		$boxes.eq(pannelIndex).show().siblings().hide();
+ 		
+        switch (pannelIndex) {
+        	case 0:
+        		if(firstRequest){
+        			Page.postJSON({
+            			url: MenuItem.cPhoneCall.get,
+            			success: function(data){       
+            				origialJSON = data;
+            				renderData(data);
+            				Page.iePercentFix('tabsitems', 0.25, 4);
+            				Page.$iframe.show();
+            				
+            				firstRequest = false;
+            			}
+            		});
+        		} else {
+        			Page.iePercentFix('tabsitems', 0.25, 4);
+        		}        		
+        		break;
+        	case 1:
+        		Page.iePercentFix('tabsitems', 0.25, 4);
+        		break;
+        	case 2:
+        		Page.iePercentFix('tabsitems', 0.25, 4);
+        		break;
+        	case 3:
+        		Page.iePercentFix('tabsitems', 0.25, 4);
+        		break;
+        	default:
+        		break;
+        }
+    });
+    
+    $lis.eq(0).click();
+    Page.$iframe.show();
+});
+</script>
+<div class="detail_box">
+	<div class="mytab_menu" id="mytab_menu">
+		<script type="text/template" id="mytab_menuTemp"> 
+    	<ul class="mytabs" id="tabsitems">
+			<li style="width: 25%;"><a href="javascript:;"><%- mytabMenu[0] %></a></li><!--
+			--><li style="width: 25%;"><a href="javascript:;"><%- mytabMenu[1] %></a></li><!--
+			--><li style="width: 25%;"><a href="javascript:;"><%- mytabMenu[2] %></a></li><!--
+			--><li style="width: 25%;"><a href="javascript:;"><%- mytabMenu[3] %></a></li>  
+    	</ul>
+		</script>
+	</div>
+	<div class="main_box" style="height: 1120px;">
+		<div class="mytab_boxes">
+			<div>
+				<div id="dialed">
+				<script type="text/template" id="dialedTemp">
+            	<table class="list4">
+				<% _.each(lists, function(item, i){ %>
+					<% if(i == 0){ %>
+            		<tr style="font-weight: bold; background-color: #fff;">
+            			<td style="width: 9%;"><%- item[0] %></td>
+            			<td style="width: 20%;"><%- item[1] %></td>
+            			<td style="width: 11%;"><%- item[2] %></td>
+            			<td style="width: 22%;"><%- item[3] %></td>
+            			<td style="width: 20%;"><%- item[4] %></td>
+				<td style="width: 25%;"><%- item[5] %></td>             
+            		</tr>
+				<%} else {%>
+			<tr>
+            			<td class="list4-td-frist-border"><%- i %></td>
+            			<td class="list4-td-border"><%- item[1] %></td>
+            			<td class="list4-td-border"><%- item[2] %></td>
+            			<td class="list4-td-border"><%- item[3] %></td>
+            			<td class="list4-td-border"><%- item[4] %></th>
+				<td class="list4-td-border"><%- item[5] %></td>              
+            		</tr>
+					<% } %>
+				<% }) %>
+            	</table>
+				</script>
+            	</div>            	
+            </div>
+            <div>
+            	<div id="missed"></div>
+            </div>
+            <div>
+            	<div id="received"></div>
+            </div>
+            <div>
+            	<div id="forwarded"></div>
+            </div>        
+        </div>
+    </div> 	
+</div>
