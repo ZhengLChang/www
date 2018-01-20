@@ -15,9 +15,12 @@ static const char rcsid[] = "$Id: echo.c,v 1.5 1999/07/28 00:29:37 roberts Exp $
 #endif /* not lint */
 
 #include "fcgi_config.h"
+#include "fcgi_stdio.h"
 
 #include <stdlib.h>
-
+#include "iniparser.h"
+#include "dictionary.h"
+#include <stdbool.h>
 #ifdef HAVE_UNISTD_H
 #include <unistd.h>
 #endif
@@ -28,7 +31,6 @@ static const char rcsid[] = "$Id: echo.c,v 1.5 1999/07/28 00:29:37 roberts Exp $
 extern char **environ;
 #endif
 
-#include "fcgi_stdio.h"
 
 
 static void PrintEnv(char *label, char **envp)
@@ -44,11 +46,21 @@ int main ()
 {
     char **initialEnv = environ;
     int count = 0;
-
     while (FCGI_Accept() >= 0) {
         char *contentLength = getenv("CONTENT_LENGTH");
         int len;
+	int i  = 0;
+	dictionary *ini = iniparser_load("./1.ini");
 
+	printf("Content-type: text/plain\r\n\r\n");
+	printf("{");
+	dictionary_report_dump(ini, stdout);
+	//dictionary_dump(ini, stdout);
+
+
+	printf("}\n");
+	iniparser_freedict(ini);
+#if 0
 	printf("Content-type: text/html\r\n"
 	    "\r\n"
 	    "<title>FastCGI echo</title>"
@@ -81,6 +93,7 @@ int main ()
 
         PrintEnv("Request environment", environ);
         PrintEnv("Initial environment", initialEnv);
+#endif
     } /* while */
 
     return 0;

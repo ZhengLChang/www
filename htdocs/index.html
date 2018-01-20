@@ -20,308 +20,58 @@
 		<script type="text/javascript" src="js/jquery/jquery.atcom.js"></script>
 		<script type="text/javascript" src="js/common/underscore-min.js"></script>
 		<script type="text/javascript" src="js/common/helper.js"></script>
-		<script type="text/javascript">
-
-
-		$(document).ready(function(){
-			var lang = {
-				L0: 'en', //英语
-				L1: 'fr', //法语
-				L2: 'he', //希伯来语
-				L3: 'ru', //俄语
-				L4: 'es', //西班牙语
-				L5: 'zh', //中文(简体)
-				L6: 'fa', //波斯语
-				L7: 'hu', //匈牙利语
-				L8: 'pl', //波兰语
-				L9: 'pt', //葡萄牙语
-				L10: 'tr', //土耳其语
-				L11: 'de',  //德语
-				L12: 'it',   //意大利语
-				L13: 'zh_tr'   //中文(繁体)
-			};
-			$.ajax({
-				url: '/cgi-bin/init.cgi?get_init',
-				type: 'POST',
-				contentType: 'application/x-www-form-urlencoded; charset=UTF-8',
-				dataType: 'text',
-				complete: function(datas){
-					var data;
-					try {
-						data = JSON.parse(datas.responseText);
-					} catch (e) {
-						
-					}
-					if(data.model == 0xff){
-						data = {
-								model: 0, //0:R4, 1:R3
-								lang: 0,
-								loginTimeout: 5,
-								wifi_support:0,
-								footerCompanyName: 'PLATAN',
-								footerProductName: 'A41'
-							};
-							if(Page.productIdentification == productIdentification.CT11)
-							{
-								footerProductName: 'CT11';
-							}
-							else if(Page.productIdentification == productIdentification.A1x)
-							{
-								footerProductName: 'A11';
-							}
-							else if(Page.productIdentification == productIdentification.A2x)
-							{
-								footerProductName: 'A21';
-							}
-							else if(Page.productIdentification == productIdentification.A41)
-							{
-								footerProductName: 'A41';
-							}
-							else if(Page.productIdentification == productIdentification.A48)
-							{
-								footerProductName: 'A48';
-							}
-							else if(Page.productIdentification == productIdentification.A68)
-							{
-								footerProductName: 'A68';
-							}
-					}
-					var random = _.now(),
-						langStr = lang['L' + data.lang] || 'pl',
-
-						langjs = String.format('js/lang/language-{0}.js?{1}', langStr, random);
-					    //测试用
-					    if(langStr === 'he' || langStr === 'fa'){
-						    loadCss('css/style-rtl.css?' + random);
-						    $.fn.validatebox.defaults.tipPosition="left";
-					    }
-					    loadJs(langjs, function(){
-						    loadJs('js/main.js?' + random, function(){
-							    init(data);
-						    });
-					    });
-				}
-			});			
-
-			function init(data){
-				if(_.isNumber(data.loginTimeout) && data.loginTimeout > 0){
-					Page.loginTimeout = data.loginTimeout;
-					Page.setPageTimeoutLogout(data.loginTimeout);
-				}
-				Page.model = data.model;
-				Page.is_support_wifi = data.wifi_support;
-				Page.currentLang = data.lang;
-				Page.extLinkNum = data.expand_keypad_attach_num;
-				Page.accountNum = data.accountNum;
-				Page.productIdentification = data.productIdentification;
-				Page.accountDisplay1 = data.AccountDisplayName1;
-				Page.accountDisplay2 = data.AccountDisplayName2;
-				Page.accountDisplay3 = data.AccountDisplayName3;
-				Page.accountDisplay4 = data.AccountDisplayName4;
-				Page.accountDisplay5 = data.AccountDisplayName5;
-				Page.accountDisplay6 = data.AccountDisplayName6;
-
-				var footerData = $.extend({}, indexHtml.footer, data);
-
-				Page.setTitle();
-				TempUtil.render('topTemp', 'top', indexHtml.top);
-				TempUtil.render('navTemp', 'nav', indexHtml.nav);
-				TempUtil.render('submenuTemp', 'submenu', indexHtml.submenu);
-				TempUtil.render('footerTemp', 'footer', footerData);
-
-				Page.setFormFieldValue('indexLangSelect', data.lang);
-				Page.username = UserName.admin;
-
-				Page.$iframe = $('#iframe');
-				var $menus = $('#nav li'),
-				    $submenuUls = $('#submenu ul'),
-				    $submenuUl = $('#submenu ul').eq(0),
-				    $submenuAs = $('#submenu a');
-				$menus.click(function(){
-					$menus.removeClass('current');
-					$(this).addClass('current');
-					var pannelIndex = $menus.index(this);
-					$submenuUls.eq(pannelIndex).show().siblings().hide();
-					$submenuUl = $submenuUls.eq(pannelIndex);
-					$submenuUl.find('a').eq(0).click();
-				});
-
-				$submenuAs.click(function(){
-					Page.$iframe.hide();
-					$submenuUl.find('a').removeClass('current');
-					$(this).addClass('current');
-					var id = this.id;
-					var item = MenuItem[id];
-
-					if(item){
-						Page.get(item.url);
-					}
-				});
-
-				$('#sStatus').click();
-
-				$('#indexLangSelect').change(function(){
-					var val = this.value;
-					Page.postJSON({
-						url: MenuItem.iIndex.setLang,
-						data: "lang=" + val,
-						success: function(data){
-							var url = location.href,
-								index = url.indexOf('?');
-							if(index > -1){
-								url = url.substring(0, index);
-							}
-							index= url.indexOf('#');
-							if(index > -1){
-								url = url.substring(0, index);
-							}
-
-							window.location.assign(url);
-							return false;
-						}
-					});
-				});
-
-				$('#logout').click(function(){
-					Page.logout(true, false);
-				});
-			}
-		});
-		</script>		
 	</head>
-	<body>
-		<!-- Tooltip -->
-		<div class='tip'>
-			<div class='tipMid'></div>
-			<div class='tipBtm'></div>
-		</div>
-		<div id="top">
-			<script type="text/template" id="topTemp">
-			<div id="indexLang">
-				<img src="images/earth.png" alt="i18n" width="21" height="21"/>
-				<select id="indexLangSelect" name="indexLangSelect">
-					<% _.each(languages, function(item, i){ %>
-							<option value="<%- item.langCode %>"><%= item.langLable %></option>
-						<% }) %>
-				</select>
-				<a href="javascript:;" id="logout" ><%- logout %></a>
-			</div>
-			</script>
-		</div>
-		<div id="headWrap">
-			<div id="head">
-				<div id="logo"><img src="images/logo.gif" alt="logo" width="130" height="60"/></div>
-				<div id="nav">
-					<script type="text/template" id="navTemp">
-					<ul>
-						<li class="current"><a href="javascript:;"><%- basic %></a></li><!--
-						--><li ><a href="javascript:;"><%- account %></a></li><!--
-						--><li ><a href="javascript:;"><%- network %></a></li><!--
-						--><li ><a href="javascript:;"><%= dSSKey.replace(/\s/g, '&nbsp;') %></a></li><!--
-						--><li id="phone" ><a href="javascript:;"><%- phone %></a></li><!--
-						--><li ><a href="javascript:;"><%- contacts %></a></li>
-					</ul>
-					</script>
-				</div>
-			</div>
-		</div>
-		<div id="main">
-			<div id="side">
-				<div id="submenu">
-					<script type="text/template" id="submenuTemp">
-					<!-- Status-->
-					<ul class="selectedUl">
-						<li><a id="sStatus" href="javascript:;" class="current"><%- sStatus %></a></li>
-						<li><a id="sWizard" href="javascript:;"><%- sWizard %></a></li>
-					</ul>
-					<!-- Account-->
-					<ul>
-						<li><a id="aBasic" href="javascript:;" class="current"><%- aBasic %></a></li>
-						<li><a id="aCodecs" href="javascript:;"><%- aCodecs %></a></li>
-						<li><a id="aAdvanced" href="javascript:;"><%- aAdvanced %></a></li>
-					</ul>
-					<!-- NetWork-->
-					<ul>
-						<li><a id="nBasic" href="javascript:;" class="current" ><%- nBasic %></a></li>
-						<% if(Page.is_support_wifi === 1) { %>
-						<li><a id="nWifi" href="javascript:;" class="current" ><%- nWifi %></a></li>
-						<% } %>
-						<li><a id="nAdvanced" href="javascript:;"><%- nAdvanced %></a></li>
-					</ul>
-					<!-- DSS key-->
-					<ul>
-						<% if(Page.productIdentification == productIdentification.CT11){ %>
-							<li><a id="dMemory" href="javascript:;" class="current" ><%- dMemory %></a></li>
-							<li><a id="dLink" href="javascript:;"><%- dLink %></a></li>
-							<li><a id="dProgrammable" href="javascript:;"><%- dProgrammable %></a></li>
-						<% } %>
-						<% if(Page.productIdentification == productIdentification.A1x){ %>
-							<li><a id="dProgrammable" href="javascript:;" class="current"><%- dProgrammable %></a></li>
-						<% } %>
-						<% if(Page.productIdentification == productIdentification.A2x){ %>
-							<li><a id="dLink" href="javascript:;" class="current"><%- dLink %></a></li>
-							<li><a id="dProgrammable" href="javascript:;"><%- dProgrammable %></a></li>
-						<% } %>
-						<% if(Page.productIdentification == productIdentification.A4x){ %>
-							<li><a id="dMemory" href="javascript:;" class="current" ><%- dMemory %></a></li>
-							<li><a id="dLink" href="javascript:;"><%- dLink %></a></li>
-							<li><a id="dProgrammable" href="javascript:;"><%- dProgrammable %></a></li>
-						<% } %>
-						<% if(Page.productIdentification == productIdentification.A48 || Page.productIdentification == productIdentification.A68){ %>
-							<li><a id="dMemory" href="javascript:;" class="current" ><%- dMemory %></a></li>
-							<li><a id="dLink" href="javascript:;"><%- dLink %></a></li>
-							<li><a id="dProgrammable" href="javascript:;"><%- dProgrammable %></a></li>
-							<li><a id="dExt" href="javascript:;"><%- dExt %></a></li>
-							<li><a id="dAetAdv" href="javascript:;"><%- dAetAdv %></a></li>
-						<% } %>
+		<script type="text/javascript">
+			$(document).ready(function(){
+				function initPage(){
+					$('#save').linkbutton();  
+					$('#reset').linkbutton(); 
+				};
+				initPage();
+				$('#reset').click(function(){
+				});
 
-					</ul>
-					<!-- Phone-->
-					<ul>
-						<li><a id="pDNDAndForward" href="javascript:;" class="current"><%= pDNDAndForward %></a></li>
-						<li><a id="pPreference" href="javascript:;"><%- pPrefetence %></a></li>
-						<li><a id="pFeatures" href="javascript:;"><%- pFeatures %></a></li>
-						<li><a id="pUpgrade" href="javascript:;"><%- pUpgrade %></a></li>
-						<li><a id="pAuto" href="javascript:;"><%- pAuto %></a></li>
-						<li><a id="pConfig" href="javascript:;"><%- pConfig %></a></li>
-						<li><a id="pRemoteControl" href="javascript:;"><%- pRemoteControl %></a></li>
-						<li><a id="pActionUrl" href="javascript:;"><%- pActionUrl %></a></li>
-						<li><a id="pTones" href="javascript:;"><%- pTones %></a></li>
-						<li><a id="pDialPlan" href="javascript:;"><%- pDialPlan %></a></li>
-						<li><a id="pVoice" href="javascript:;"><%- pVoice %></a></li>
-						<li><a id="pPhoneLock" href="javascript:;"><%- pPhoneLock %></a></li>
-						<li><a id="pRing" href="javascript:;"><%- pRing %></a></li>
-						<li><a id="pPhoneTr069" href="javascript:;"><%- pPhoneTr069 %></a></li>
-						<li><a id="pSecurity" href="javascript:;"><%- pSecurity %></a></li>
-						<li><a id="pDebug" href="javascript:;"><%- pDebug %></a></li>
-						<li><a id="sStrusted" href="javascript:;"><%- sStrusted %></a></li>
-						<li><a id="sServer" href="javascript:;"><%- sServer %></a></li>
-					</ul>
-					<!-- Contacts-->
-					<ul>
-						<li><a id="cContacts" href="javascript:;" class="current" ><%- cContacts %></a></li>
-						<li><a id="cXMLPhonebook" href="javascript:;"><%- cXMLPhonebook %></a></li>
-						<li><a id="cLDAP" href="javascript:;"><%- cLDAP %></a></li>
-						<li><a id="cMulticastIp" href="javascript:;"><%- cMulticastIp %></a></li>
-						<li><a id="cPhoneCall" href="javascript:;"><%- cPhoneCall %></a></li>
-					</ul>
-					</script>
-				</div>
-			</div><!--
-			--><div id="iframe">			
-			</div>
-		</div>
-		<div id="footer">
-			<script type="text/template" id="footerTemp">
-			<a href="<%- footerWebsite %>" target="_blank"><%- website %></a>
-			<!--
-				<a href="<%- footerProductWebsite %>" target="_blank""><%- products %></a>
-				<a href="<%- footerSupport %>" target="_blank"><%- support %></a>
-				<a href="<%- footerDownload %>" target="_blank"><%- download %></a>
-				<a href="<%- footerEmail %>" target="_blank"><%- contactus %></a>
-				-->
-			<span><%- atcomRights.replace("ATCOM", 'PLATAN') %></span>
-			</script>
-		</div>
-	</body>
+				$('#save').click(function(){
+					$("#iniparserForm").ajaxSubmit({
+			       		     url: '/cgi-bin/cgiMain.fcgi',
+	  				     type: 'POST',
+	 				     dataType: 'text',
+	 				     success: function(data, statusText) {
+	     				     try{		            
+     					     jsonData = JSON.parse(data);
+					     alert(data);
+     					     }catch(ex){		           
+			            		jsonData = {return_code: -1};
+						}                     
+
+		    			},
+			            error: function(responseText, statusText) {           
+				    	alert("error");
+			            	jsonData = {return_code: -1};
+			            },
+			            complete: function(responseText){
+				    	alert("complete" + JSON.parse(responseText));
+				    /*
+			            	jsonData.filename = updateFileName;
+			            	window.parent.IframeUtil.jsonData = jsonData;
+<!-- method="post" action="/cgi-bin/cgiMain.fcgi"-->
+					*/
+			            }
+			        });
+				});
+			});
+		</script>
+<body>
+<form id="iniparserForm" enctype="multipart/form-data" method="post">
+	<div>
+		<input type="file" id="iniparserFile" name="iniparserFile">
+	</div>
+	<div class="page-button">
+		<a id="save" href="javascript:;">butConfirm</a> 
+		&nbsp;&nbsp;&nbsp;&nbsp;
+		&nbsp;&nbsp;&nbsp;&nbsp;
+		<a id="reset" href="javascript:;">butCancel</a>  
+	</div>
+</form>
+</body>
 </html>
