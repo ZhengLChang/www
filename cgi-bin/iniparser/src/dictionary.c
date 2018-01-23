@@ -383,58 +383,72 @@ void dictionary_report_dump(const dictionary * d, FILE * out)
     ssize_t  i ;
     int repeat = 0;
     bool is_report_repeat = false;
+    json_t *json = json_new_object(),
+    		*repeat_array_json = NULL;
+    buffer *repeatBuf = buffer_init();
 
+    if(json == NULL)
+    {
+    	return ;
+    }
     if (d==NULL || out==NULL) return ;
     if (d->n<1) {
-        fprintf(out, "empty dictionary\\n");
+    	JSON_INSERT_STRING(json, "Result", "empty dictionary");
+    	json_stream_output(out, json);
+    	json_free_value(&json);
         return ;
     }
-    fprintf(out, "\"Section Sum\" : \"%d\",", d->n);
+
+    json_insert_number(json, "Section Sum", d->n);
 
     for (i=0 ; i<d->n ; i++) {
     	 if(d->repeat[i] > 1)
     	 {
-    		 if(!is_report_repeat)
+    		 if(repeat_array_json == NULL &&
+    				 NULL == (repeat_array_json = json_new_object()))
     		 {
-    			 is_report_repeat = true;
-    			 fprintf(out, "\"Warning\": \"File has some repeating section, Next is the Repeat\",");
+    			// JSON_INSERT_STRING(json, "Warning", "File has some repeating section, Next is the Repeat");
     		 }
     		 repeat++;
     		 if(repeat == 1)
     		 {
-    			 fprintf(out, "\"repeatList\": ");
+    			 buffer_append_string_len(repeatBuf, CONST_STR_LEN("repeatList: "));
     			 if(d->key[i][0] == ':')
     			 {
-    				 fprintf(out, "\"%s", d->key[i] + 1);
+    				 buffer_append_string_len(repeatBuf, d->key[i] + 1, strlen(d->key[i] + 1));
     			 }
     			 else
     			 {
-    				 fprintf(out, "\"%s", d->key[i]);
+    				 buffer_append_string_len(repeatBuf, d->key[i], strlen(d->key[i]));
     			 }
     		 }
     		 else
     		 {
     			 if(d->key[i][0] == ':')
     			 {
-    				 fprintf(out, ",%s", d->key[i] + 1);
+    				 buffer_append_string_len(repeatBuf, d->key[i] + 1, strlen(d->key[i] + 1));
     			 }
     			 else
     			 {
-    				 fprintf(out, "\"%s", d->key[i]);
+    				 buffer_append_string_len(repeatBuf, d->key[i], strlen(d->key[i]));
     			 }
     		 }
     	 }
     }
     if(repeat > 0)
     {
-    	fprintf(out, "\",");
+    	JSON_INSERT_STRING(json, "repeatList", repeatBuf->ptr);
     }
+
     if(d->error_buf->used != 0)
     {
-    	fprintf(out, "\"Error\": \"%s\"",
-    						d->error_buf->ptr);
+    	JSON_INSERT_STRING(json, "Error", d->error_buf->ptr);
     }
+	json_stream_output(out, json);
+	json_free_value(&json);
     return ;
+ERROR:
+	return;
 }
 
 /* Test code */

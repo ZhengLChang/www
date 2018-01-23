@@ -21,6 +21,7 @@ static const char rcsid[] = "$Id: echo.c,v 1.5 1999/07/28 00:29:37 roberts Exp $
 #include "iniparser.h"
 #include "dictionary.h"
 #include <stdbool.h>
+#include "json.h"
 #ifdef HAVE_UNISTD_H
 #include <unistd.h>
 #endif
@@ -53,12 +54,12 @@ int main ()
 	dictionary *ini = iniparser_load("./1.ini");
 
 	printf("Content-type: text/plain\r\n\r\n");
-	printf("{");
+	//printf("{");
 	dictionary_report_dump(ini, stdout);
 	//dictionary_dump(ini, stdout);
 
 
-	printf("}\n");
+	//printf("}\n");
 	iniparser_freedict(ini);
 #if 0
 	printf("Content-type: text/html\r\n"

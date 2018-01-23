@@ -26,6 +26,7 @@
 #include "fcgi_config.h"
 #include "fcgi_stdio.h"
 #include "buffer.h"
+#include "json.h"
 
 /*---------------------------------------------------------------------------
                                 New types

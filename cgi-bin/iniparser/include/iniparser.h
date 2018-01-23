@@ -21,6 +21,7 @@
 #include "fcgi_config.h"
 #include "fcgi_stdio.h"
 #include "buffer.h"
+#include "json.h"
 /*
  * The following #include is necessary on many Unixes but not Linux.
  * It is not needed for Windows platforms.
